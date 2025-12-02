@@ -37,14 +37,14 @@ const LoginModal = ({ onClose }) => {
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"></div>
-      <div className="fixed inset-0 flex items-center justify-center z-50 px-4">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"></div>
+      <div className="fixed inset-0 flex items-center justify-center z-[100] px-4">
         <div className="relative bg-white rounded-2xl p-8 w-full max-w-md shadow-xl border border-gray-100">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 text-gray-500 hover:text-black"
           >
-            ✕
+            X
           </button>
 
           <div className="text-center mb-8">
@@ -120,12 +120,20 @@ const LoginModal = ({ onClose }) => {
               <FiArrowRight />
             </button>
 
-            <p className="text-sm text-center text-gray-600">
-              Don’t have an account?{' '}
-              <a href="#" className="font-bold text-gray-900 hover:underline">
+                        <p className="text-sm text-center text-gray-600">
+              Don't have an account?{' '}
+              <button
+                type="button"
+                onClick={() => {
+                  navigate('/register');
+                  onClose?.();
+                }}
+                className="font-bold text-gray-900 hover:underline"
+              >
                 Create one
-              </a>
+              </button>
             </p>
+
           </form>
         </div>
       </div>
