@@ -1,35 +1,33 @@
-import React, { useState } from 'react';
-import { FiMail, FiLock, FiArrowRight } from 'react-icons/fi';
-import { login as loginApi } from '../../api/authApi';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { FiMail, FiLock, FiArrowRight } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import useAuth from "../../hooks/useAuth";
+import mapBackendErrors from "../../utils/mapBackendErrors";
 
 const fieldBase =
   'w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 shadow-sm focus:border-black focus:ring-2 focus:ring-black/10 transition bg-white';
 
 const LoginModal = ({ onClose }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError('');
+    setError("");
+    setFieldErrors({});
     setLoading(true);
     try {
-      const data = await loginApi({ email, password });
-
-      if (data) {
-        window.localStorage.setItem('authData', JSON.stringify(data));
-        if (data.access_token) {
-          window.localStorage.setItem('accessToken', data.access_token);
-        }
-      }
-      navigate('/');
+      await login({ email, password });
+      navigate("/");
       onClose?.();
     } catch (err) {
-      setError(err.message || 'Login failed');
+      setFieldErrors(mapBackendErrors(err));
+      setError(err?.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -83,6 +81,9 @@ const LoginModal = ({ onClose }) => {
                   className={fieldBase}
                   placeholder="you@company.com"
                 />
+                {fieldErrors?.email && (
+                  <p className="text-xs text-red-600 mt-1">{fieldErrors.email}</p>
+                )}
               </div>
             </div>
 
@@ -101,6 +102,9 @@ const LoginModal = ({ onClose }) => {
                   className={fieldBase}
                   placeholder="Enter your password"
                 />
+                {fieldErrors?.password && (
+                  <p className="text-xs text-red-600 mt-1">{fieldErrors.password}</p>
+                )}
               </div>
             </div>
 
@@ -116,16 +120,25 @@ const LoginModal = ({ onClose }) => {
               className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-full font-bold shadow-lg transition transform hover:-translate-y-0.5 hover:shadow-xl"
               style={{ backgroundColor: '#F4C02A', color: '#151515' }}
             >
-              {loading ? 'Signing in...' : 'Sign In'}
-              <FiArrowRight />
+              {loading ? (
+                <>
+                  <span className="h-5 w-5 border-2 border-black/40 border-t-transparent rounded-full animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  Sign In
+                  <FiArrowRight />
+                </>
+              )}
             </button>
 
-                        <p className="text-sm text-center text-gray-600">
-              Don't have an account?{' '}
+            <p className="text-sm text-center text-gray-600">
+              Don't have an account?{" "}
               <button
                 type="button"
                 onClick={() => {
-                  navigate('/register');
+                  navigate("/register");
                   onClose?.();
                 }}
                 className="font-bold text-gray-900 hover:underline"
@@ -133,7 +146,6 @@ const LoginModal = ({ onClose }) => {
                 Create one
               </button>
             </p>
-
           </form>
         </div>
       </div>

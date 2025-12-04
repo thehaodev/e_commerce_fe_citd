@@ -7,7 +7,7 @@ const SellerRegisterForm = ({ onSubmit }) => {
   const [taxCode, setTaxCode] = useState("");
   const [contactPerson, setContactPerson] = useState("");
   const [phone, setPhone] = useState("");
-  const [hqAddress, setHqAddress] = useState("");
+  const [address, setAddress] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -22,7 +22,7 @@ const SellerRegisterForm = ({ onSubmit }) => {
       !taxCode.trim() ||
       !contactPerson.trim() ||
       !phone.trim() ||
-      !hqAddress.trim()
+      !address.trim()
     ) {
       setError("Please fill in all required fields.");
       return;
@@ -37,7 +37,7 @@ const SellerRegisterForm = ({ onSubmit }) => {
         tax_code: taxCode,
         contact_person: contactPerson,
         phone,
-        hq_address: hqAddress,
+        address,
       });
     } catch (err) {
       setError(err?.message || "Unable to create seller account.");
@@ -141,16 +141,16 @@ const SellerRegisterForm = ({ onSubmit }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            HQ Address
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+            Address
           </label>
           <input
             type="text"
             placeholder="123 Industrial Park, City, Country"
             className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-yellow focus:border-transparent outline-none"
             required
-            value={hqAddress}
-            onChange={(e) => setHqAddress(e.target.value)}
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
           />
         </div>
       </div>
