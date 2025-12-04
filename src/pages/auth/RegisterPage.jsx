@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import BuyerRegisterForm from "../../components/register/BuyerRegisterForm";
 import SellerRegisterForm from "../../components/register/SellerRegisterForm";
 import ProviderRegisterForm from "../../components/register/ProviderRegisterForm";
+import OtpModal from "../../components/register/OtpModal";
 import {
   registerBuyer,
   registerSeller,
@@ -10,11 +11,42 @@ import {
 
 const RegisterPage = () => {
   const [role, setRole] = useState("BUYER");
+  const [showOtp, setShowOtp] = useState(false);
+  const [otpData, setOtpData] = useState(null);
 
   const activeButton =
     "flex-1 py-2.5 rounded-lg text-sm font-bold bg-white text-primary-black shadow-sm transition-all";
   const inactiveButton =
     "flex-1 py-2.5 rounded-lg text-sm font-semibold text-gray-500 hover:text-gray-900 transition-all";
+
+  const registerActions = {
+    BUYER: registerBuyer,
+    SELLER: registerSeller,
+    PROVIDER: registerProvider,
+  };
+
+  const handleRegisterSubmit = async (formData) => {
+    const registerFn = registerActions[role];
+    if (!registerFn) {
+      throw new Error("Không xác định được loại tài khoản.");
+    }
+    await registerFn(formData);
+    setOtpData({
+      email: formData?.email || "",
+      password: formData?.password || "",
+    });
+    setShowOtp(true);
+  };
+
+  const handleCloseOtp = () => {
+    setShowOtp(false);
+    setOtpData(null);
+  };
+
+  const handleOtpSuccess = () => {
+    setShowOtp(false);
+    setOtpData(null);
+  };
 
   return (
     <div className="bg-gray-50 text-gray-900 font-sans antialiased">
@@ -94,10 +126,10 @@ const RegisterPage = () => {
             </button>
           </div>
 
-          {role === "BUYER" && <BuyerRegisterForm onSubmit={registerBuyer} />}
-          {role === "SELLER" && <SellerRegisterForm onSubmit={registerSeller} />}
+          {role === "BUYER" && <BuyerRegisterForm onSubmit={handleRegisterSubmit} />}
+          {role === "SELLER" && <SellerRegisterForm onSubmit={handleRegisterSubmit} />}
           {role === "PROVIDER" && (
-            <ProviderRegisterForm onSubmit={registerProvider} />
+            <ProviderRegisterForm onSubmit={handleRegisterSubmit} />
           )}
 
           <p className="mt-8 text-center text-xs text-gray-400">
@@ -113,6 +145,14 @@ const RegisterPage = () => {
           </p>
         </div>
       </div>
+
+      <OtpModal
+        open={showOtp}
+        email={otpData?.email}
+        password={otpData?.password}
+        onClose={handleCloseOtp}
+        onSuccess={handleOtpSuccess}
+      />
     </div>
   );
 };
