@@ -1,0 +1,116 @@
+import { useState } from "react";
+import { heroSlides } from "../../../data/buyerHomeMock";
+
+const HeroBanner = () => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const total = heroSlides.length;
+
+  const handlePrev = () => {
+    setActiveIndex((prev) => (prev - 1 + total) % total);
+  };
+
+  const handleNext = () => {
+    setActiveIndex((prev) => (prev + 1) % total);
+  };
+
+  return (
+    <section className="relative mx-auto mt-4 max-w-7xl px-4">
+      <div className="relative overflow-hidden rounded-3xl border border-gray-100 bg-gradient-to-br from-indigo-50 via-white to-sky-50 shadow-lg">
+        {heroSlides.map((slide, index) => (
+          <div
+            key={slide.id}
+            className={`grid grid-cols-1 items-center gap-8 transition duration-500 md:grid-cols-2 ${
+              index === activeIndex ? "opacity-100" : "hidden opacity-0"
+            }`}
+          >
+            <div className="p-8 sm:p-12">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-indigo-600 shadow-sm">
+                <span className="h-2 w-2 rounded-full bg-indigo-500" />
+                {slide.badge}
+              </div>
+              <h1 className="text-2xl font-bold leading-tight text-gray-900 sm:text-3xl lg:text-4xl">
+                {slide.title}
+              </h1>
+              <p className="mt-4 text-base text-gray-600 sm:text-lg">
+                {slide.subtitle}
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <button className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition hover:-translate-y-0.5 hover:bg-indigo-700">
+                  {slide.cta}
+                </button>
+                <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-indigo-600 shadow-sm">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  {slide.accent}
+                </div>
+              </div>
+            </div>
+            <div className="relative">
+              <div className="absolute inset-6 rounded-3xl bg-gradient-to-br from-white/60 to-white/20 shadow-inner" />
+              <img
+                src={slide.image}
+                alt={slide.title}
+                className="relative z-10 h-full w-full rounded-3xl object-cover"
+              />
+              <div className="absolute inset-0 rounded-3xl bg-gradient-to-t from-black/10 to-transparent" />
+            </div>
+          </div>
+        ))}
+
+        <button
+          onClick={handlePrev}
+          className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-lg transition hover:bg-indigo-50"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+        </button>
+        <button
+          onClick={handleNext}
+          className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-lg transition hover:bg-indigo-50"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </button>
+
+        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2">
+          {heroSlides.map((slide, idx) => (
+            <button
+              key={slide.id}
+              onClick={() => setActiveIndex(idx)}
+              className={`h-2.5 rounded-full transition ${
+                idx === activeIndex
+                  ? "w-8 bg-indigo-600"
+                  : "w-2.5 bg-gray-300 hover:bg-indigo-200"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default HeroBanner;
