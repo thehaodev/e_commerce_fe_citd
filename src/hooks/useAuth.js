@@ -1,13 +1,14 @@
 import { useCallback, useState } from "react";
 import useAuthStore from "../store/authStore";
-import { getCurrentUser, login as loginApi } from "../api/authApi";
+import { login as loginApi } from "../api/authApi";
 
 const useAuth = () => {
   const {
     user,
     accessToken,
     isLoggedIn,
-    login: setAuth,
+    setToken,
+    setUser,
     logout: clearAuth,
     loadFromLocalStorage,
   } = useAuthStore();
@@ -22,24 +23,14 @@ const useAuth = () => {
       try {
         const data = await loginApi(credentials);
         const token = data?.access_token || data?.token || null;
+        const nextUser = data?.user || null;
 
-        // Store token first so /auth/me can use it
-        setAuth({
-          user: data?.user || null,
-          accessToken: token,
-        });
-
-        const profile = await getCurrentUser();
-        const resolvedUser = profile?.user || profile || null;
-
-        setAuth({
-          user: resolvedUser,
-          accessToken: token,
-        });
+        setToken(token);
+        setUser(nextUser);
 
         return {
           ...data,
-          user: resolvedUser,
+          user: nextUser,
           accessToken: token,
         };
       } catch (err) {
@@ -49,7 +40,7 @@ const useAuth = () => {
         setIsLoading(false);
       }
     },
-    [setAuth]
+    [setToken, setUser]
   );
 
   const logout = useCallback(() => {

@@ -14,6 +14,18 @@ const useAuthStore = create(
           isLoggedIn: Boolean(accessToken || user),
         });
       },
+      setToken: (accessToken) => {
+        set((state) => ({
+          accessToken: accessToken || null,
+          isLoggedIn: Boolean(accessToken || state.user),
+        }));
+      },
+      setUser: (user) => {
+        set((state) => ({
+          user: user || null,
+          isLoggedIn: Boolean(state.accessToken || user),
+        }));
+      },
       logout: () => {
         set({
           user: null,
