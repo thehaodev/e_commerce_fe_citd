@@ -5,10 +5,10 @@ const OfferHot = () => {
     <section className="mx-auto max-w-7xl px-4 py-6">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold text-indigo-600">Offer HOT</p>
+          <p className="text-sm font-semibold text-amber-700">Offer HOT</p>
           <h2 className="text-xl font-bold text-gray-900">Trending right now</h2>
         </div>
-        <button className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
+        <button className="text-sm font-semibold text-amber-700 hover:text-amber-800">
           See more
         </button>
       </div>
@@ -17,22 +17,22 @@ const OfferHot = () => {
         {hotOffers.map((offer) => (
           <div
             key={offer.id}
-            className="relative min-w-[280px] flex-1 overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-500 to-sky-400 p-5 text-white shadow-lg transition hover:-translate-y-1 hover:shadow-xl"
+            className="relative min-w-[280px] flex-1 overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 via-amber-400 to-yellow-300 p-5 text-gray-900 shadow-lg transition hover:-translate-y-1 hover:shadow-xl"
           >
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.1),transparent)]" />
             <div className="relative flex items-start justify-between">
-              <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide">
+              <span className="rounded-full bg-white/30 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-900">
                 {offer.badge}
               </span>
-              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-indigo-700">
+              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-amber-700">
                 {offer.discount}
               </span>
             </div>
-            <h3 className="relative mt-4 text-lg font-bold">{offer.title}</h3>
-            <p className="relative mt-2 text-sm text-indigo-50">
+            <h3 className="relative mt-4 text-lg font-bold text-gray-900">{offer.title}</h3>
+            <p className="relative mt-2 text-sm text-amber-900/80">
               {offer.description}
             </p>
-            <button className="relative mt-4 inline-flex items-center gap-2 text-sm font-semibold text-white transition hover:translate-x-1">
+            <button className="relative mt-4 inline-flex items-center gap-2 text-sm font-semibold text-gray-900 transition hover:translate-x-1">
               Grab deal
               <svg
                 xmlns="http://www.w3.org/2000/svg"

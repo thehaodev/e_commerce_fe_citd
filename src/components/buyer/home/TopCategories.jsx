@@ -5,10 +5,10 @@ const TopCategories = () => {
     <section className="mx-auto max-w-7xl px-4 py-6">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold text-indigo-600">Top Categories</p>
+          <p className="text-sm font-semibold text-amber-700">Top Categories</p>
           <h2 className="text-xl font-bold text-gray-900">Explore by industry</h2>
         </div>
-        <button className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
+        <button className="text-sm font-semibold text-amber-700 hover:text-amber-800">
           See all
         </button>
       </div>
@@ -17,7 +17,7 @@ const TopCategories = () => {
         {categories.map((category) => (
           <div
             key={category.id}
-            className="flex flex-col items-center gap-2 rounded-2xl border border-gray-100 bg-white px-3 py-4 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+            className="flex flex-col items-center gap-2 rounded-2xl border border-amber-50 bg-white px-3 py-4 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-md"
           >
             <div
               className={`flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold ${category.color}`}

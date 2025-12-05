@@ -15,7 +15,7 @@ const HeroBanner = () => {
 
   return (
     <section className="relative mx-auto mt-4 max-w-7xl px-4">
-      <div className="relative overflow-hidden rounded-3xl border border-gray-100 bg-gradient-to-br from-indigo-50 via-white to-sky-50 shadow-lg">
+      <div className="relative overflow-hidden rounded-3xl border border-amber-50 bg-gradient-to-br from-amber-50 via-white to-yellow-50 shadow-lg">
         {heroSlides.map((slide, index) => (
           <div
             key={slide.id}
@@ -24,8 +24,8 @@ const HeroBanner = () => {
             }`}
           >
             <div className="p-8 sm:p-12">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-indigo-600 shadow-sm">
-                <span className="h-2 w-2 rounded-full bg-indigo-500" />
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-amber-700 shadow-sm">
+                <span className="h-2 w-2 rounded-full bg-amber-500" />
                 {slide.badge}
               </div>
               <h1 className="text-2xl font-bold leading-tight text-gray-900 sm:text-3xl lg:text-4xl">
@@ -35,10 +35,10 @@ const HeroBanner = () => {
                 {slide.subtitle}
               </p>
               <div className="mt-6 flex flex-wrap items-center gap-3">
-                <button className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition hover:-translate-y-0.5 hover:bg-indigo-700">
+                <button className="rounded-xl bg-amber-400 px-5 py-3 text-sm font-semibold text-gray-900 shadow-lg shadow-amber-200 transition hover:-translate-y-0.5 hover:bg-amber-500">
                   {slide.cta}
                 </button>
-                <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-indigo-600 shadow-sm">
+                <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-amber-700 shadow-sm">
                   <span className="h-2 w-2 rounded-full bg-emerald-500" />
                   {slide.accent}
                 </div>
@@ -58,7 +58,7 @@ const HeroBanner = () => {
 
         <button
           onClick={handlePrev}
-          className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-lg transition hover:bg-indigo-50"
+          className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-lg transition hover:bg-amber-50"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -77,7 +77,7 @@ const HeroBanner = () => {
         </button>
         <button
           onClick={handleNext}
-          className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-lg transition hover:bg-indigo-50"
+          className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-lg transition hover:bg-amber-50"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -102,8 +102,8 @@ const HeroBanner = () => {
               onClick={() => setActiveIndex(idx)}
               className={`h-2.5 rounded-full transition ${
                 idx === activeIndex
-                  ? "w-8 bg-indigo-600"
-                  : "w-2.5 bg-gray-300 hover:bg-indigo-200"
+                  ? "w-8 bg-amber-500"
+                  : "w-2.5 bg-gray-300 hover:bg-amber-200"
               }`}
             />
           ))}

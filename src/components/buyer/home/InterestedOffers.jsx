@@ -5,10 +5,10 @@ const InterestedOffers = () => {
     <section className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold text-indigo-600">Your Offer Interested</p>
+          <p className="text-sm font-semibold text-amber-700">Your Offer Interested</p>
           <h2 className="text-xl font-bold text-gray-900">Picked for you</h2>
         </div>
-        <button className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
+        <button className="text-sm font-semibold text-amber-700 hover:text-amber-800">
           View all
         </button>
       </div>
@@ -17,7 +17,7 @@ const InterestedOffers = () => {
         {interestedOffers.map((offer) => (
           <div
             key={offer.id}
-            className="min-w-[260px] max-w-xs flex-1 rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+            className="min-w-[260px] max-w-xs flex-1 rounded-2xl border border-amber-50 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
           >
             <div className="relative h-36 w-full overflow-hidden rounded-t-2xl">
               <img
@@ -30,12 +30,12 @@ const InterestedOffers = () => {
             <div className="space-y-2 p-4">
               <p className="text-sm font-semibold text-gray-900">{offer.title}</p>
               <p className="text-xs text-gray-500">{offer.supplier}</p>
-              <p className="text-base font-bold text-indigo-600">{offer.price}</p>
+              <p className="text-base font-bold text-amber-700">{offer.price}</p>
               <div className="flex flex-wrap gap-2">
                 {offer.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="rounded-full bg-indigo-50 px-3 py-1 text-[11px] font-semibold text-indigo-600"
+                    className="rounded-full bg-amber-50 px-3 py-1 text-[11px] font-semibold text-amber-700"
                   >
                     {tag}
                   </span>
