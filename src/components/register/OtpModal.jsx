@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { login as loginApi, verifyOtp } from "../../api/authApi";
+import { verifyOtp } from "../../api/authApi";
 import useAuth from "../../hooks/useAuth";
 
 const OtpModal = ({
@@ -18,7 +18,7 @@ const OtpModal = ({
   const [timeLeft, setTimeLeft] = useState(60);
   const inputRefs = useRef([]);
   const navigate = useNavigate();
-  const { login: storeLogin } = useAuth();
+  const { login } = useAuth();
 
   useEffect(() => {
     if (!open) return undefined;
@@ -133,18 +133,19 @@ const OtpModal = ({
         purpose: "REGISTER",
       });
 
-      const authData = await loginApi({
+      const authData = await login({
         email,
         password,
-      });
-      storeLogin({
-        user: authData?.user || null,
-        accessToken: authData?.access_token || authData?.token || null,
       });
 
       onSuccess?.();
       onClose?.();
-      navigate("/");
+      const role = authData?.user?.role;
+      if (role === "BUYER") {
+        navigate("/buyer/home");
+      } else {
+        navigate("/");
+      }
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

@@ -22,8 +22,13 @@ const LoginModal = ({ onClose }) => {
     setFieldErrors({});
     setLoading(true);
     try {
-      await login({ email, password });
-      navigate("/");
+      const authData = await login({ email, password });
+      const role = authData?.user?.role;
+      if (role === "BUYER") {
+        navigate("/buyer/home");
+      } else {
+        navigate("/");
+      }
       onClose?.();
     } catch (err) {
       setFieldErrors(mapBackendErrors(err));
