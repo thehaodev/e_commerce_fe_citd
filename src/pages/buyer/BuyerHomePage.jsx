@@ -8,7 +8,7 @@ import Footer from "../../components/buyer/home/Footer";
 
 const BuyerHomePage = () => {
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div className="min-h-screen bg-amber-50/60 text-gray-900">
       <NavBar />
       <main className="pb-10">
         <HeroBanner />
