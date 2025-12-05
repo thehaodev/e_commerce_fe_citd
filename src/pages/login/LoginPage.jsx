@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { FiMail, FiLock, FiArrowRight } from 'react-icons/fi';
 import { colors } from '../../components/landing/colors';
-import { login as loginApi } from '../../api/authApi';
 import { useNavigate } from 'react-router-dom';
+import useAuth from '../../hooks/useAuth';
 
 const fieldBase =
   'w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 shadow-sm focus:border-black focus:ring-2 focus:ring-black/10 transition bg-white';
@@ -13,23 +13,22 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const data = await loginApi({ email, password });
-
-      if (data) {
-        window.localStorage.setItem('authData', JSON.stringify(data));
-        if (data.access_token) {
-          window.localStorage.setItem('accessToken', data.access_token);
-        }
+      const authData = await login({ email, password });
+      const role = authData?.user?.role;
+      if (role === 'BUYER') {
+        navigate('/buyer/home');
+      } else {
+        navigate('/');
       }
-      navigate('/');
     } catch (err) {
-      setError(err.message || 'Login failed');
+      setError(err?.message || 'Login failed');
     } finally {
       setLoading(false);
     }

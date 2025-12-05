@@ -28,6 +28,15 @@ const post = async (url, payload, fallback) => {
   }
 };
 
+const get = async (url, fallback) => {
+  try {
+    const res = await httpClient.get(url);
+    return res.data;
+  } catch (error) {
+    throw buildError(error, fallback);
+  }
+};
+
 export const registerBuyer = async (data) =>
   post(
     "/auth/register/buyer",
@@ -58,6 +67,9 @@ export const verifyOtp = async (data) =>
 
 export const login = async (data) =>
   post("/auth/login", data, "Login failed. Please check your credentials.");
+
+export const getCurrentUser = async () =>
+  get("/auth/me", "Unable to fetch your profile. Please try again.");
 
 export const forgotPassword = async (data) =>
   post(
