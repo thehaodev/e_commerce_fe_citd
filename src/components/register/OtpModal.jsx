@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { verifyOtp } from "../../api/authApi";
-import useAuth from "../../hooks/useAuth";
+import useAuth, { getRedirectPathForRole } from "../../hooks/useAuth";
 
 const OtpModal = ({
   open,
@@ -141,11 +141,7 @@ const OtpModal = ({
       onSuccess?.();
       onClose?.();
       const role = authData?.user?.role;
-      if (role === "BUYER") {
-        navigate("/buyer/home");
-      } else {
-        navigate("/");
-      }
+      navigate(getRedirectPathForRole(role));
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
