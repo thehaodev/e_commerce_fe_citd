@@ -5,7 +5,7 @@ import StatusBadge from "../../components/seller/offers/StatusBadge";
 import { getOfferById } from "../../api/offerApi";
 
 const formatDate = (value) => {
-  if (!value) return "—";
+  if (!value) return "N/A";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString();
@@ -53,7 +53,8 @@ const OfferDetailPage = () => {
       setLoading(true);
       setError("");
       try {
-        const data = await getOfferById(offerId);
+        const res = await getOfferById(offerId);
+        const data = res?.data || res;
         if (isMounted) {
           setOffer(data);
           setActiveIndex(0);
@@ -82,7 +83,7 @@ const OfferDetailPage = () => {
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         {label}
       </p>
-      <p className="text-sm font-semibold text-slate-900">{value || "—"}</p>
+      <p className="text-sm font-semibold text-slate-900">{value || "N/A"}</p>
     </div>
   );
 
@@ -100,7 +101,7 @@ const OfferDetailPage = () => {
           <p className="text-xs font-semibold uppercase tracking-wide text-amber-600">
             Offer Detail
           </p>
-          <h1 className="text-2xl font-bold text-slate-900">{offer?.product_name || "—"}</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{offer?.product_name || "N/A"}</h1>
         </div>
         {offer?.status && <StatusBadge status={offer.status} className="ml-auto" />}
       </header>

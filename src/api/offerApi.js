@@ -1,5 +1,9 @@
 import httpClient from "./httpClient";
 
+export const getOffers = () => httpClient.get("/offers");
+
+export const getOfferById = (offerId) => httpClient.get(`/offers/${offerId}`);
+
 export const createOffer = async (payload) => {
   const formData = new FormData();
 
@@ -27,10 +31,5 @@ export const createOffer = async (payload) => {
 
 export const getMyOffers = async (params = {}) => {
   const response = await httpClient.get("/offers/my", { params });
-  return response.data;
-};
-
-export const getOfferById = async (offerId) => {
-  const response = await httpClient.get(`/offers/${offerId}`);
   return response.data;
 };
