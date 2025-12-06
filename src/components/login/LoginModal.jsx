@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { FiMail, FiLock, FiArrowRight } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-import useAuth from "../../hooks/useAuth";
+import useAuth, { getRedirectPathForRole } from "../../hooks/useAuth";
 import mapBackendErrors from "../../utils/mapBackendErrors";
 
 const fieldBase =
@@ -24,11 +24,7 @@ const LoginModal = ({ onClose }) => {
     try {
       const authData = await login({ email, password });
       const role = authData?.user?.role;
-      if (role === "BUYER") {
-        navigate("/buyer/home");
-      } else {
-        navigate("/");
-      }
+      navigate(getRedirectPathForRole(role));
       onClose?.();
     } catch (err) {
       setFieldErrors(mapBackendErrors(err));
