@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FiMail, FiLock, FiArrowRight } from 'react-icons/fi';
 import { colors } from '../../components/landing/colors';
 import { useNavigate } from 'react-router-dom';
-import useAuth from '../../hooks/useAuth';
+import useAuth, { getRedirectPathForRole } from '../../hooks/useAuth';
 
 const fieldBase =
   'w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 shadow-sm focus:border-black focus:ring-2 focus:ring-black/10 transition bg-white';
@@ -22,11 +22,7 @@ const LoginPage = () => {
     try {
       const authData = await login({ email, password });
       const role = authData?.user?.role;
-      if (role === 'BUYER') {
-        navigate('/buyer/home');
-      } else {
-        navigate('/');
-      }
+      navigate(getRedirectPathForRole(role));
     } catch (err) {
       setError(err?.message || 'Login failed');
     } finally {

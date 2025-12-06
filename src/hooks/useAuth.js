@@ -2,6 +2,21 @@ import { useCallback, useState } from "react";
 import useAuthStore from "../store/authStore";
 import { login as loginApi } from "../api/authApi";
 
+export const getRedirectPathForRole = (role) => {
+  switch (role) {
+    case "BUYER":
+      return "/buyer/home";
+    case "SELLER":
+      return "/seller/home";
+    case "PROVIDER":
+      return "/";
+    case "ADMIN":
+      return "/admin";
+    default:
+      return "/";
+  }
+};
+
 const useAuth = () => {
   const {
     user,
