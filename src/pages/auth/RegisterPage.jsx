@@ -30,7 +30,10 @@ const RegisterPage = () => {
     if (!registerFn) {
       throw new Error("Không xác định được loại tài khoản.");
     }
-    await registerFn(formData);
+    await registerFn({
+      ...formData,
+      role,
+    });
     setOtpData({
       email: formData?.email || "",
       password: formData?.password || "",
