@@ -9,7 +9,7 @@ export const getRedirectPathForRole = (role) => {
     case "SELLER":
       return "/seller/home";
     case "PROVIDER":
-      return "/";
+      return "/provider/home";
     case "ADMIN":
       return "/admin";
     default:
