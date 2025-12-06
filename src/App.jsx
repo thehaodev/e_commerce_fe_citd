@@ -6,6 +6,7 @@ import SellerHome from "./pages/seller/SellerHome";
 import CreateOfferPage from "./pages/seller/CreateOfferPage";
 import MyOffersPage from "./pages/seller/MyOffersPage";
 import OfferDetailPage from "./pages/seller/OfferDetailPage";
+import ProviderHome from "./pages/provider/ProviderHome";
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
       <Route path="/seller/offers" element={<MyOffersPage />} />
       <Route path="/seller/offers/new" element={<CreateOfferPage />} />
       <Route path="/seller/offers/:offerId" element={<OfferDetailPage />} />
+      <Route path="/provider/home" element={<ProviderHome />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
