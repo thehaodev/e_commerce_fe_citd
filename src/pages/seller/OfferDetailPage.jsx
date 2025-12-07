@@ -5,7 +5,7 @@ import StatusBadge from "../../components/seller/offers/StatusBadge";
 import { getOfferById } from "../../api/offerApi";
 
 const formatDate = (value) => {
-  if (!value) return "—";
+  if (!value) return "N/A";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString();
@@ -47,24 +47,36 @@ const OfferDetailPage = () => {
   const [error, setError] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const resolveImageSrc = (image) => {
+    if (typeof image === "string") return image;
+    if (image?.url) return image.url;
+    if (image?.preview) return image.preview;
+    return null;
+  };
+
   useEffect(() => {
     let isMounted = true;
     async function load() {
       setLoading(true);
       setError("");
       try {
-        const data = await getOfferById(offerId);
-        if (isMounted) {
-          setOffer(data);
-          setActiveIndex(0);
-        }
+        const res = await getOfferById(offerId);
+        const data = res?.data || res;
+        if (!isMounted) return;
+        setOffer(data);
+        setActiveIndex(0);
       } catch (err) {
-        if (isMounted) setError(err?.message || "Unable to load offer.");
+        if (isMounted) setError(err?.message || "Unable to load offer detail.");
       } finally {
         if (isMounted) setLoading(false);
       }
     }
-    load();
+    if (offerId) {
+      load();
+    } else {
+      setError("Offer not found.");
+      setLoading(false);
+    }
     return () => {
       isMounted = false;
     };
@@ -72,7 +84,9 @@ const OfferDetailPage = () => {
 
   const images = useMemo(() => {
     if (!offer?.images) return [];
-    return Array.isArray(offer.images) ? offer.images : [];
+    return Array.isArray(offer.images)
+      ? offer.images.map((img) => resolveImageSrc(img)).filter(Boolean)
+      : [];
   }, [offer]);
 
   const activeImage = images[activeIndex] || null;
@@ -82,7 +96,7 @@ const OfferDetailPage = () => {
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         {label}
       </p>
-      <p className="text-sm font-semibold text-slate-900">{value || "—"}</p>
+      <p className="text-sm font-semibold text-slate-900">{value || "N/A"}</p>
     </div>
   );
 
@@ -100,7 +114,7 @@ const OfferDetailPage = () => {
           <p className="text-xs font-semibold uppercase tracking-wide text-amber-600">
             Offer Detail
           </p>
-          <h1 className="text-2xl font-bold text-slate-900">{offer?.product_name || "—"}</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{offer?.product_name || "N/A"}</h1>
         </div>
         {offer?.status && <StatusBadge status={offer.status} className="ml-auto" />}
       </header>
