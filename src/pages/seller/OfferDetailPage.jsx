@@ -47,6 +47,13 @@ const OfferDetailPage = () => {
   const [error, setError] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const resolveImageSrc = (image) => {
+    if (typeof image === "string") return image;
+    if (image?.url) return image.url;
+    if (image?.preview) return image.preview;
+    return null;
+  };
+
   useEffect(() => {
     let isMounted = true;
     async function load() {
@@ -55,17 +62,21 @@ const OfferDetailPage = () => {
       try {
         const res = await getOfferById(offerId);
         const data = res?.data || res;
-        if (isMounted) {
-          setOffer(data);
-          setActiveIndex(0);
-        }
+        if (!isMounted) return;
+        setOffer(data);
+        setActiveIndex(0);
       } catch (err) {
-        if (isMounted) setError(err?.message || "Unable to load offer.");
+        if (isMounted) setError(err?.message || "Unable to load offer detail.");
       } finally {
         if (isMounted) setLoading(false);
       }
     }
-    load();
+    if (offerId) {
+      load();
+    } else {
+      setError("Offer not found.");
+      setLoading(false);
+    }
     return () => {
       isMounted = false;
     };
@@ -73,7 +84,9 @@ const OfferDetailPage = () => {
 
   const images = useMemo(() => {
     if (!offer?.images) return [];
-    return Array.isArray(offer.images) ? offer.images : [];
+    return Array.isArray(offer.images)
+      ? offer.images.map((img) => resolveImageSrc(img)).filter(Boolean)
+      : [];
   }, [offer]);
 
   const activeImage = images[activeIndex] || null;

@@ -17,7 +17,8 @@ const SellerHome = () => {
       setLoading(true);
       setError("");
       try {
-        const data = await getMyOffers();
+        const res = await getMyOffers();
+        const data = res?.data ?? res;
         if (isMounted) {
           setOffers(Array.isArray(data) ? data : data?.items || []);
         }
