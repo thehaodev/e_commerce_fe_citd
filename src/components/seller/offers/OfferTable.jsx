@@ -3,18 +3,25 @@ import { Link } from "react-router-dom";
 import StatusBadge from "./StatusBadge";
 
 const formatDate = (value) => {
-  if (!value) return "—";
+  if (!value) return "N/A";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString();
 };
 
 const formatPrice = (price) => {
-  if (price === undefined || price === null || Number.isNaN(Number(price))) return "—";
+  if (price === undefined || price === null || Number.isNaN(Number(price))) return "N/A";
   return Number(price).toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+};
+
+const resolveImageSrc = (image) => {
+  if (typeof image === "string") return image;
+  if (image?.url) return image.url;
+  if (image?.preview) return image.preview;
+  return null;
 };
 
 const OfferTable = ({ offers, onView }) => {
@@ -39,7 +46,7 @@ const OfferTable = ({ offers, onView }) => {
           {offers.map((offer) => {
             const firstImage =
               Array.isArray(offer.images) && offer.images.length > 0
-                ? offer.images[0]
+                ? resolveImageSrc(offer.images[0])
                 : null;
             return (
               <tr key={offer.id} className="hover:bg-slate-50/60">
@@ -63,20 +70,20 @@ const OfferTable = ({ offers, onView }) => {
                     to={`/seller/offers/${offer.id}`}
                     className="font-semibold text-slate-900 hover:text-amber-700"
                   >
-                    {offer.product_name || "—"}
+                    {offer.product_name || "N/A"}
                   </Link>
                 </td>
                 <td className="px-4 py-3 text-sm text-slate-800">
-                  {offer.quantity ?? "—"}
+                  {offer.quantity ?? "N/A"}
                 </td>
                 <td className="px-4 py-3 text-sm text-slate-800">
                   {formatPrice(offer.price)}
                 </td>
                 <td className="px-4 py-3 text-sm text-slate-800">
-                  {offer.seller_incoterm || "—"}
+                  {offer.seller_incoterm || "N/A"}
                 </td>
                 <td className="px-4 py-3 text-sm text-slate-800">
-                  {offer.port_of_loading || "—"}
+                  {offer.port_of_loading || "N/A"}
                 </td>
                 <td className="px-4 py-3 text-sm text-slate-800">
                   {formatDate(offer.cargo_ready_date)}

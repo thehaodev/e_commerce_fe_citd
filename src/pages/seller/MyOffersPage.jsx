@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiAlertCircle, FiPlus } from "react-icons/fi";
 import FilterBar from "../../components/seller/offers/FilterBar";
@@ -21,29 +21,23 @@ const MyOffersPage = () => {
   const [sort, setSort] = useState("created_desc");
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    let isMounted = true;
-    async function load() {
-      setLoading(true);
-      setError("");
-      try {
-        const data = await getMyOffers();
-        if (isMounted) {
-          setOffers(Array.isArray(data) ? data : data?.items || []);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err?.message || "Unable to load offers. Please try again.");
-        }
-      } finally {
-        if (isMounted) setLoading(false);
-      }
+  const fetchOffers = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await getMyOffers();
+      const data = res?.data ?? res;
+      setOffers(Array.isArray(data) ? data : data?.items || []);
+    } catch (err) {
+      setError("Failed to load your offers.");
+    } finally {
+      setLoading(false);
     }
-    load();
-    return () => {
-      isMounted = false;
-    };
   }, []);
+
+  useEffect(() => {
+    fetchOffers();
+  }, [fetchOffers]);
 
   const filtered = useMemo(() => {
     return offers
@@ -130,7 +124,7 @@ const MyOffersPage = () => {
             <span>{error}</span>
             <button
               type="button"
-              onClick={() => window.location.reload()}
+              onClick={fetchOffers}
               className="ml-auto text-amber-700 font-semibold hover:text-amber-800"
             >
               Retry
@@ -139,7 +133,7 @@ const MyOffersPage = () => {
         ) : filtered.length === 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
             <p className="text-lg font-semibold text-slate-900 mb-2">
-              You haven’t created any Offer yet.
+              You haven't created any Offer yet.
             </p>
             <p className="text-sm text-slate-600 mb-6">
               Start by creating an offer to reach buyers on CABIN.

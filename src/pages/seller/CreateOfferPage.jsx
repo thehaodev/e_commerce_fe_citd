@@ -35,6 +35,19 @@ const CreateOfferPage = () => {
     setMinDate(computeMinDate());
   }, []);
 
+  const imageUrls = useMemo(
+    () =>
+      (images || [])
+        .map((img) => {
+          if (typeof img === "string") return img;
+          if (img?.url) return img.url;
+          if (img?.preview) return img.preview;
+          return "";
+        })
+        .filter(Boolean),
+    [images]
+  );
+
   const fieldErrors = useMemo(() => {
     const errors = {};
     if (!form.product_name.trim()) errors.product_name = "Product name is required";
@@ -49,10 +62,10 @@ const CreateOfferPage = () => {
     if (form.cargo_ready_date && form.cargo_ready_date < minDate) {
       errors.cargo_ready_date = `Earliest date is ${minDate}`;
     }
-    if (images.length < 1) errors.images = "At least 1 image is required";
-    if (images.length > 5) errors.images = "Maximum 5 images allowed";
+    if (imageUrls.length < 1) errors.images = "At least 1 image is required";
+    if (imageUrls.length > 5) errors.images = "Maximum 5 images allowed";
     return errors;
-  }, [form, images.length, minDate]);
+  }, [form, imageUrls.length, minDate]);
 
   const isValid = Object.keys(fieldErrors).length === 0;
 
@@ -78,7 +91,7 @@ const CreateOfferPage = () => {
         ...form,
         quantity: Number(form.quantity),
         price: Number(form.price),
-        images,
+        images: imageUrls.map((url) => ({ url })),
       };
       await createOffer(payload);
       setSuccessOpen(true);
