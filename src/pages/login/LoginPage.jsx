@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FiMail, FiLock, FiArrowRight } from 'react-icons/fi';
 import { colors } from '../../components/landing/colors';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import useAuth, { getRedirectPathForRole } from '../../hooks/useAuth';
 
 const fieldBase =
@@ -13,6 +13,7 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
 
   async function handleSubmit(e) {
@@ -20,9 +21,15 @@ const LoginPage = () => {
     setError('');
     setLoading(true);
     try {
+      const params = new URLSearchParams(location.search);
+      const from = params.get('from');
       const authData = await login({ email, password });
       const role = authData?.user?.role;
-      navigate(getRedirectPathForRole(role));
+      if (from) {
+        navigate(from, { replace: true });
+      } else {
+        navigate(getRedirectPathForRole(role));
+      }
     } catch (err) {
       setError(err?.message || 'Login failed');
     } finally {

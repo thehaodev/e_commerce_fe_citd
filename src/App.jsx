@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import LandingPage from "./pages/landing/LandingPage";
 import RegisterPage from "./pages/auth/RegisterPage";
@@ -7,19 +8,69 @@ import CreateOfferPage from "./pages/seller/CreateOfferPage";
 import MyOffersPage from "./pages/seller/MyOffersPage";
 import OfferDetailPage from "./pages/seller/OfferDetailPage";
 import ProviderHome from "./pages/provider/ProviderHome";
+import RequireAuth from "./components/auth/RequireAuth";
+import useAuth from "./hooks/useAuth";
 
 export default function App() {
+  const { initAuth } = useAuth();
+
+  useEffect(() => {
+    initAuth();
+  }, [initAuth]);
+
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LandingPage defaultLoginOpen />} />
       <Route path="/register" element={<RegisterPage />} />
-      <Route path="/buyer/home" element={<BuyerHomePage />} />
-      <Route path="/seller/home" element={<SellerHome />} />
-      <Route path="/seller/offers" element={<MyOffersPage />} />
-      <Route path="/seller/offers/new" element={<CreateOfferPage />} />
-      <Route path="/seller/offers/:offerId" element={<OfferDetailPage />} />
-      <Route path="/provider/home" element={<ProviderHome />} />
+      <Route
+        path="/buyer/home"
+        element={
+          <RequireAuth allowedRoles={["BUYER"]}>
+            <BuyerHomePage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/seller/home"
+        element={
+          <RequireAuth allowedRoles={["SELLER"]}>
+            <SellerHome />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/seller/offers"
+        element={
+          <RequireAuth allowedRoles={["SELLER"]}>
+            <MyOffersPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/seller/offers/new"
+        element={
+          <RequireAuth allowedRoles={["SELLER"]}>
+            <CreateOfferPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/seller/offers/:offerId"
+        element={
+          <RequireAuth allowedRoles={["SELLER"]}>
+            <OfferDetailPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/provider/home"
+        element={
+          <RequireAuth allowedRoles={["PROVIDER"]}>
+            <ProviderHome />
+          </RequireAuth>
+        }
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -12,12 +12,28 @@ const httpClient = axios.create({
 });
 
 httpClient.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().accessToken;
+  const token =
+    useAuthStore.getState().accessToken || window.localStorage.getItem("accessToken");
   if (token) {
     config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
+
+httpClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+
+    if (status === 401 || status === 403) {
+      const { logout } = useAuthStore.getState();
+      logout?.();
+      window.location.href = "/login";
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 export default httpClient;
