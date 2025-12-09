@@ -5,6 +5,7 @@ const initialState = {
   user: null,
   accessToken: null,
   isLoggedIn: false,
+  authInitialized: false,
 };
 
 const useAuthStore = create(
@@ -23,12 +24,13 @@ const useAuthStore = create(
             user: user || null,
             accessToken: accessToken || null,
             isLoggedIn: Boolean(accessToken || user),
+            authInitialized: true,
           };
         }),
       logout: () =>
         set(() => {
           window.localStorage.removeItem("accessToken");
-          return { ...initialState };
+          return { ...initialState, authInitialized: true };
         }),
     }),
     {

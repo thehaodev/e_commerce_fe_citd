@@ -12,8 +12,13 @@ const httpClient = axios.create({
 });
 
 httpClient.interceptors.request.use((config) => {
-  const token =
-    useAuthStore.getState().accessToken || window.localStorage.getItem("accessToken");
+  const state = useAuthStore.getState();
+  let token = state?.accessToken;
+
+  if (!token) {
+    token = window.localStorage.getItem("accessToken");
+  }
+
   if (token) {
     config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;
