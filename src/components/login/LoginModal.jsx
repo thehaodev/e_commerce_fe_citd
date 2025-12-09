@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FiMail, FiLock, FiArrowRight } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import useAuth, { getRedirectPathForRole } from "../../hooks/useAuth";
 import mapBackendErrors from "../../utils/mapBackendErrors";
 
@@ -15,6 +15,7 @@ const LoginModal = ({ onClose }) => {
   const [fieldErrors, setFieldErrors] = useState({});
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -22,9 +23,15 @@ const LoginModal = ({ onClose }) => {
     setFieldErrors({});
     setLoading(true);
     try {
+      const params = new URLSearchParams(location.search);
+      const from = params.get("from");
       const authData = await login({ email, password });
       const role = authData?.user?.role;
-      navigate(getRedirectPathForRole(role));
+      if (from) {
+        navigate(from, { replace: true });
+      } else {
+        navigate(getRedirectPathForRole(role));
+      }
       onClose?.();
     } catch (err) {
       setFieldErrors(mapBackendErrors(err));
