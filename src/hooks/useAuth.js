@@ -23,6 +23,7 @@ const useAuth = () => {
     user,
     accessToken,
     isLoggedIn,
+    authInitialized,
     setAuth,
     logout: clearAuth,
   } = useAuthStore();
@@ -37,13 +38,19 @@ const useAuth = () => {
       setError(null);
       try {
         const data = await loginApi(credentials);
-        const token = data?.access_token || data?.token || null;
+        const token =
+          data?.access_token || data?.accessToken || data?.token || null;
 
         if (!token) {
           throw new Error("Access token is missing from login response.");
         }
 
         window.localStorage.setItem("accessToken", token);
+        useAuthStore.setState((prev) => ({
+          ...prev,
+          accessToken: token,
+          isLoggedIn: true,
+        }));
         const me = await getCurrentUser();
 
         setAuth({ user: me, accessToken: token });
@@ -64,7 +71,16 @@ const useAuth = () => {
     const token =
       useAuthStore.getState().accessToken || window.localStorage.getItem("accessToken");
 
-    if (!token) return;
+    if (!token) {
+      useAuthStore.setState((prev) => ({ ...prev, authInitialized: true }));
+      return;
+    }
+
+    useAuthStore.setState((prev) => ({
+      ...prev,
+      accessToken: token,
+      isLoggedIn: true,
+    }));
 
     try {
       const me = await getCurrentUser();
@@ -74,6 +90,8 @@ const useAuth = () => {
       if (status === 401 || status === 403) {
         clearAuth();
       }
+    } finally {
+      useAuthStore.setState((prev) => ({ ...prev, authInitialized: true }));
     }
   }, [setAuth, clearAuth]);
 
@@ -97,6 +115,7 @@ const useAuth = () => {
     getUser,
     user,
     accessToken,
+    authInitialized,
   };
 };
 
