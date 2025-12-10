@@ -19,6 +19,7 @@ const LoginModal = ({ onClose }) => {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    e.stopPropagation();
     setError("");
     setFieldErrors({});
     setLoading(true);

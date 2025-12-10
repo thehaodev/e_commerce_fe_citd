@@ -18,6 +18,7 @@ const LoginPage = () => {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    e.stopPropagation();
     setError('');
     setLoading(true);
     try {
