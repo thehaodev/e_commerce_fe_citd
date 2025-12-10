@@ -41,12 +41,13 @@ const CreateOfferPage = () => {
         .map((img) => {
           if (typeof img === "string") return img;
           if (img?.url) return img.url;
-          if (img?.preview) return img.preview;
           return "";
         })
         .filter(Boolean),
     [images]
   );
+
+  const hasUploading = useMemo(() => (images || []).some((img) => img?.uploading), [images]);
 
   const fieldErrors = useMemo(() => {
     const errors = {};
@@ -62,10 +63,11 @@ const CreateOfferPage = () => {
     if (form.cargo_ready_date && form.cargo_ready_date < minDate) {
       errors.cargo_ready_date = `Earliest date is ${minDate}`;
     }
-    if (imageUrls.length < 1) errors.images = "At least 1 image is required";
+    if (hasUploading) errors.images = "Please wait for uploads to finish";
+    if (imageUrls.length < 1 && !hasUploading) errors.images = "At least 1 image is required";
     if (imageUrls.length > 5) errors.images = "Maximum 5 images allowed";
     return errors;
-  }, [form, imageUrls.length, minDate]);
+  }, [form, hasUploading, imageUrls.length, minDate]);
 
   const isValid = Object.keys(fieldErrors).length === 0;
 
@@ -96,7 +98,12 @@ const CreateOfferPage = () => {
       await createOffer(payload);
       setSuccessOpen(true);
     } catch (err) {
-      setApiError(err?.message || "Please try again later.");
+      const message =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Please try again later.";
+      setApiError(message);
     } finally {
       setSubmitting(false);
     }
