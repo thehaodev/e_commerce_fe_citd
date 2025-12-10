@@ -33,14 +33,13 @@ export default function LandingPage({ defaultLoginOpen = false }) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-    }, 5000);
+    }, 3000);
 
     const checkHealth = async () => {
       try {
         const res = await fetch("https://e-commerce-be-citd-staging.onrender.com/health", {
           signal: controller.signal,
         });
-        clearTimeout(timeoutId);
         if (!res.ok) {
           if (isMounted) setServerUnstable(true);
           return;
@@ -51,6 +50,8 @@ export default function LandingPage({ defaultLoginOpen = false }) {
         }
       } catch (err) {
         if (isMounted) setServerUnstable(true);
+      } finally {
+        clearTimeout(timeoutId);
       }
     };
 
@@ -62,10 +63,6 @@ export default function LandingPage({ defaultLoginOpen = false }) {
       controller.abort();
     };
   }, []);
-
-  if (!authInitialized) {
-    return null;
-  }
 
   return (
     <div className="font-sans text-slate-900 bg-white min-h-screen">
