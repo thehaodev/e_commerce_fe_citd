@@ -71,10 +71,10 @@ export const login = async (data) =>
 export const getCurrentUser = async () =>
   get("/auth/me", "Unable to fetch your profile. Please try again.");
 
-export const forgotPassword = async (data) =>
+export const forgotPassword = async (email) =>
   post(
     "/auth/forgot-password",
-    data,
+    { email },
     "Unable to send OTP. Please verify your email and try again."
   );
 

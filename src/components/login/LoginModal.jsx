@@ -117,9 +117,16 @@ const LoginModal = ({ onClose }) => {
             </div>
 
             <div className="flex items-center justify-between text-sm">
-              <a href="#" className="font-semibold text-gray-700 hover:text-black">
+              <button
+                type="button"
+                onClick={() => {
+                  navigate("/forgot-password");
+                  onClose?.();
+                }}
+                className="font-semibold text-gray-700 hover:text-black"
+              >
                 Forgot your password?
-              </a>
+              </button>
             </div>
 
             <button
