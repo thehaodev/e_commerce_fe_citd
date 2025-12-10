@@ -5,7 +5,14 @@ const formatDate = (value) => {
   return date.toLocaleDateString();
 };
 
-const OfferHot = ({ offers = [], isLoading = false, error = null }) => {
+const OfferHot = ({
+  offers = [],
+  isLoading = false,
+  error = null,
+  interestedOfferIds = new Set(),
+  submittingOfferId = null,
+  onExpressInterest,
+}) => {
   const renderSkeleton = () => (
     <div className="-mx-2 flex gap-4 overflow-x-auto pb-2">
       {[1, 2, 3].map((idx) => (
@@ -51,6 +58,9 @@ const OfferHot = ({ offers = [], isLoading = false, error = null }) => {
             const priceLabel = offer?.price ? `${offer.price}` : "Price on request";
             const dateLabel = formatDate(offer?.created_at || offer?.createdAt);
             const description = offer?.description || offer?.port_of_loading || "No description";
+            const isInterested = interestedOfferIds.has(String(offer?.id));
+            const isSubmitting = submittingOfferId === offer?.id;
+            const buttonLabel = isInterested ? "Interested" : isSubmitting ? "Submitting..." : "Express interest";
 
             return (
               <div
@@ -75,22 +85,18 @@ const OfferHot = ({ offers = [], isLoading = false, error = null }) => {
                 <div className="relative mt-3 text-xs font-semibold text-amber-900/70">
                   {dateLabel ? `Posted ${dateLabel}` : "Recently added"}
                 </div>
-                <button className="relative mt-4 inline-flex items-center gap-2 text-sm font-semibold text-gray-900 transition hover:translate-x-1">
-                  Grab deal
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M5 12h14m-7-7l7 7-7 7"
-                    />
-                  </svg>
+                <button
+                  type="button"
+                  disabled={isInterested || isSubmitting}
+                  onClick={() => {
+                    if (isInterested || isSubmitting || !offer?.id) return;
+                    onExpressInterest?.(offer.id);
+                  }}
+                  className={`relative mt-4 inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-semibold text-amber-700 transition hover:translate-x-1 hover:-translate-y-px hover:shadow ${
+                    isInterested || isSubmitting ? "cursor-not-allowed opacity-70" : ""
+                  }`}
+                >
+                  {buttonLabel}
                 </button>
               </div>
             );
