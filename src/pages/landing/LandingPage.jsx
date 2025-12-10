@@ -13,6 +13,7 @@ export default function LandingPage({ defaultLoginOpen = false }) {
   const { user, isLoggedIn, authInitialized } = useAuth();
   const navigate = useNavigate();
   const [showLogin, setShowLogin] = useState(defaultLoginOpen);
+  const [serverUnstable, setServerUnstable] = useState(false);
   const openLogin = () => setShowLogin(true);
   const closeLogin = () => setShowLogin(false);
 
@@ -27,12 +28,52 @@ export default function LandingPage({ defaultLoginOpen = false }) {
     }
   }, [authInitialized, isLoggedIn, user, navigate]);
 
+  useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 5000);
+
+    const checkHealth = async () => {
+      try {
+        const res = await fetch("https://e-commerce-be-citd-staging.onrender.com/health", {
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (!res.ok) {
+          if (isMounted) setServerUnstable(true);
+          return;
+        }
+        const data = await res.json().catch(() => ({}));
+        if (data?.status !== "ok" && isMounted) {
+          setServerUnstable(true);
+        }
+      } catch (err) {
+        if (isMounted) setServerUnstable(true);
+      }
+    };
+
+    checkHealth();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, []);
+
   if (!authInitialized) {
     return null;
   }
 
   return (
     <div className="font-sans text-slate-900 bg-white min-h-screen">
+      {serverUnstable && (
+        <div className="bg-yellow-100 text-yellow-800 text-sm py-2 px-4 text-center">
+          Server is starting or unstable (free Render). If things are slow, please try again in a few seconds.
+        </div>
+      )}
       <Navbar onLoginClick={openLogin} />
       <Hero />
       <HowItWorks />
