@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import LandingPage from "./pages/landing/LandingPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import BuyerHomePage from "./pages/buyer/BuyerHomePage";
 import SellerHome from "./pages/seller/SellerHome";
 import CreateOfferPage from "./pages/seller/CreateOfferPage";
@@ -23,6 +25,8 @@ export default function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LandingPage defaultLoginOpen />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route
         path="/buyer/home"
         element={
