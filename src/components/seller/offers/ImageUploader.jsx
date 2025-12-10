@@ -1,15 +1,46 @@
 import React, { useCallback, useRef, useState } from "react";
-import { FiUpload, FiX, FiArrowLeft, FiArrowRight } from "react-icons/fi";
+import { FiUpload, FiX, FiArrowLeft, FiArrowRight, FiLoader } from "react-icons/fi";
+import { uploadImage } from "../../../api/uploadApi";
 
 const MAX_IMAGES = 5;
 
 const ImageUploader = ({ value = [], onChange, error }) => {
   const [dragActive, setDragActive] = useState(false);
+  const [uploadingId, setUploadingId] = useState(null);
   const inputRef = useRef(null);
 
   const triggerInput = () => {
     inputRef.current?.click();
   };
+
+  const updateItem = useCallback(
+    (id, patch) => {
+      onChange?.((prev) =>
+        (prev || []).map((item) => (item.id === id ? { ...item, ...patch } : item))
+      );
+    },
+    [onChange]
+  );
+
+  const uploadSingle = useCallback(
+    async (item) => {
+      if (!item?.file) return;
+      setUploadingId(item.id);
+      updateItem(item.id, { uploading: true, error: "" });
+      try {
+        const res = await uploadImage(item.file);
+        const url = res?.data?.url || res?.data?.secure_url || res?.data?.path;
+        if (!url) throw new Error("Upload failed");
+        updateItem(item.id, { url, uploading: false });
+      } catch (err) {
+        const message = err?.response?.data?.message || err?.message || "Upload failed";
+        updateItem(item.id, { uploading: false, error: message });
+      } finally {
+        setUploadingId(null);
+      }
+    },
+    [updateItem]
+  );
 
   const handleFiles = useCallback(
     (files) => {
@@ -21,12 +52,15 @@ const ImageUploader = ({ value = [], onChange, error }) => {
         id: `${file.name}-${file.lastModified}-${Math.random().toString(16).slice(2)}`,
         file,
         preview: URL.createObjectURL(file),
+        uploading: true,
       }));
 
       const next = [...value, ...accepted];
       onChange?.(next);
+
+      accepted.forEach((item) => uploadSingle(item));
     },
-    [onChange, value]
+    [onChange, uploadSingle, value]
   );
 
   const handleDrop = (event) => {
@@ -99,7 +133,7 @@ const ImageUploader = ({ value = [], onChange, error }) => {
               className="relative w-28 h-28 rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-white"
             >
               <img
-                src={item.preview}
+                src={item.url || item.preview}
                 alt={`Upload ${index + 1}`}
                 className="h-full w-full object-cover"
               />
@@ -110,6 +144,19 @@ const ImageUploader = ({ value = [], onChange, error }) => {
               >
                 <FiX className="text-rose-600" size={14} />
               </button>
+              {item.uploading && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 text-amber-600">
+                  <FiLoader className="animate-spin" size={16} />
+                  <span className="text-[11px] font-semibold">Uploading</span>
+                </div>
+              )}
+              {item.error && !item.uploading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/85 text-center px-2">
+                  <span className="text-[11px] font-semibold text-rose-600">
+                    {item.error}
+                  </span>
+                </div>
+              )}
               <div className="absolute bottom-1 left-1 flex gap-1">
                 <button
                   type="button"
@@ -133,6 +180,10 @@ const ImageUploader = ({ value = [], onChange, error }) => {
             </div>
           ))}
         </div>
+      )}
+
+      {uploadingId && (
+        <p className="text-xs font-semibold text-amber-600">Uploading image...</p>
       )}
 
       {value.length >= MAX_IMAGES && (
