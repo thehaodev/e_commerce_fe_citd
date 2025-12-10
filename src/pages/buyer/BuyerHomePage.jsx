@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import NavBar from "../../components/buyer/home/NavBar";
 import HeroBanner from "../../components/buyer/home/HeroBanner";
 import InterestedOffers from "../../components/buyer/home/InterestedOffers";
 import TopCategories from "../../components/buyer/home/TopCategories";
@@ -135,7 +134,6 @@ const BuyerHomePage = () => {
 
   return (
     <div className="min-h-screen bg-amber-50/60 text-gray-900">
-      <NavBar />
       <main className="pb-10">
         <HeroBanner />
         <InterestedOffers

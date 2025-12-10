@@ -12,6 +12,9 @@ import OfferDetailPage from "./pages/seller/OfferDetailPage";
 import ProviderHome from "./pages/provider/ProviderHome";
 import RequireAuth from "./components/auth/RequireAuth";
 import useAuth from "./hooks/useAuth";
+import BuyerLayout from "./components/layout/BuyerLayout";
+import SellerLayout from "./components/layout/SellerLayout";
+import ProviderLayout from "./components/layout/ProviderLayout";
 
 export default function App() {
   const { initAuth } = useAuth();
@@ -31,7 +34,9 @@ export default function App() {
         path="/buyer/home"
         element={
           <RequireAuth allowedRoles={["BUYER"]}>
-            <BuyerHomePage />
+            <BuyerLayout>
+              <BuyerHomePage />
+            </BuyerLayout>
           </RequireAuth>
         }
       />
@@ -39,7 +44,9 @@ export default function App() {
         path="/seller/home"
         element={
           <RequireAuth allowedRoles={["SELLER"]}>
-            <SellerHome />
+            <SellerLayout>
+              <SellerHome />
+            </SellerLayout>
           </RequireAuth>
         }
       />
@@ -47,7 +54,9 @@ export default function App() {
         path="/seller/offers"
         element={
           <RequireAuth allowedRoles={["SELLER"]}>
-            <MyOffersPage />
+            <SellerLayout>
+              <MyOffersPage />
+            </SellerLayout>
           </RequireAuth>
         }
       />
@@ -55,7 +64,9 @@ export default function App() {
         path="/seller/offers/new"
         element={
           <RequireAuth allowedRoles={["SELLER"]}>
-            <CreateOfferPage />
+            <SellerLayout>
+              <CreateOfferPage />
+            </SellerLayout>
           </RequireAuth>
         }
       />
@@ -63,7 +74,9 @@ export default function App() {
         path="/seller/offers/:offerId"
         element={
           <RequireAuth allowedRoles={["SELLER"]}>
-            <OfferDetailPage />
+            <SellerLayout>
+              <OfferDetailPage />
+            </SellerLayout>
           </RequireAuth>
         }
       />
@@ -71,7 +84,9 @@ export default function App() {
         path="/provider/home"
         element={
           <RequireAuth allowedRoles={["PROVIDER"]}>
-            <ProviderHome />
+            <ProviderLayout>
+              <ProviderHome />
+            </ProviderLayout>
           </RequireAuth>
         }
       />
