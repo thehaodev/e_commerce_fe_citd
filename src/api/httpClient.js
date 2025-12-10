@@ -34,7 +34,6 @@ httpClient.interceptors.response.use(
     if (status === 401 || status === 403) {
       const { logout } = useAuthStore.getState();
       logout?.();
-      window.location.href = "/login";
     }
 
     return Promise.reject(error);
