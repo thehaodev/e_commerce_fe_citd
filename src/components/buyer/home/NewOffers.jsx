@@ -12,7 +12,14 @@ const getImageUrl = (offer) => {
   return typeof firstImage === "string" ? firstImage : firstImage.url || null;
 };
 
-const NewOffers = ({ offers = [], isLoading = false, error = null }) => {
+const NewOffers = ({
+  offers = [],
+  isLoading = false,
+  error = null,
+  interestedOfferIds = new Set(),
+  submittingOfferId = null,
+  onExpressInterest,
+}) => {
   const renderSkeleton = () => (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {[1, 2, 3, 4].map((idx) => (
@@ -60,6 +67,9 @@ const NewOffers = ({ offers = [], isLoading = false, error = null }) => {
             const imageUrl = getImageUrl(offer);
             const readyDate = formatDate(offer?.cargo_ready_date);
             const createdDate = formatDate(offer?.created_at || offer?.createdAt);
+            const isInterested = interestedOfferIds.has(String(offer?.id));
+            const isSubmitting = submittingOfferId === offer?.id;
+            const buttonLabel = isInterested ? "Interested" : isSubmitting ? "Submitting..." : "Express interest";
             return (
               <div
                 key={offer?.id}
@@ -93,8 +103,18 @@ const NewOffers = ({ offers = [], isLoading = false, error = null }) => {
                     {readyDate ? `Cargo ready: ${readyDate}` : createdDate ? `Posted: ${createdDate}` : "Just added"}
                   </p>
                   <div className="mt-auto pt-3">
-                    <button className="w-full rounded-xl bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-100">
-                      See details
+                    <button
+                      type="button"
+                      disabled={isInterested || isSubmitting}
+                      onClick={() => {
+                        if (isInterested || isSubmitting || !offer?.id) return;
+                        onExpressInterest?.(offer.id);
+                      }}
+                      className={`w-full rounded-xl bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 ${
+                        isInterested || isSubmitting ? "cursor-not-allowed opacity-70" : ""
+                      }`}
+                    >
+                      {buttonLabel}
                     </button>
                   </div>
                 </div>
