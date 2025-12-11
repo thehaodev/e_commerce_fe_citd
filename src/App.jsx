@@ -16,6 +16,8 @@ import BuyerLayout from "./components/layout/BuyerLayout";
 import SellerLayout from "./components/layout/SellerLayout";
 import ProviderLayout from "./components/layout/ProviderLayout";
 import SellerShell from "./components/layout/SellerShell";
+import AdminOffersPage from "./pages/admin/AdminOffersPage";
+import AdminOfferDetailPage from "./pages/admin/AdminOfferDetailPage";
 
 export default function App() {
   const { initAuth } = useAuth();
@@ -88,6 +90,30 @@ export default function App() {
             <ProviderLayout>
               <ProviderHome />
             </ProviderLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/offers"
+        element={
+          <RequireAuth allowedRoles={["ADMIN"]}>
+            <AdminOffersPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/offers/:offerId"
+        element={
+          <RequireAuth allowedRoles={["ADMIN"]}>
+            <AdminOfferDetailPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <RequireAuth allowedRoles={["ADMIN"]}>
+            <Navigate to="/admin/offers" replace />
           </RequireAuth>
         }
       />
