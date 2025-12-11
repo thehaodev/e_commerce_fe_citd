@@ -15,6 +15,7 @@ import useAuth from "./hooks/useAuth";
 import BuyerLayout from "./components/layout/BuyerLayout";
 import SellerLayout from "./components/layout/SellerLayout";
 import ProviderLayout from "./components/layout/ProviderLayout";
+import SellerShell from "./components/layout/SellerShell";
 
 export default function App() {
   const { initAuth } = useAuth();
@@ -44,9 +45,9 @@ export default function App() {
         path="/seller/home"
         element={
           <RequireAuth allowedRoles={["SELLER"]}>
-            <SellerLayout>
+            <SellerShell>
               <SellerHome />
-            </SellerLayout>
+            </SellerShell>
           </RequireAuth>
         }
       />
