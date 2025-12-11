@@ -26,7 +26,10 @@ const sellerNavLinks = [
   { label: "Create Offer", href: "/seller/offers/new" },
 ];
 
-const providerNavLinks = [{ label: "Home", href: "/provider/home" }];
+const providerNavLinks = [
+  { label: "Home", href: "/provider/home" },
+  { label: "Service Requests", href: "/provider/service-requests" },
+];
 
 const headerVariants = {
   BUYER: {
