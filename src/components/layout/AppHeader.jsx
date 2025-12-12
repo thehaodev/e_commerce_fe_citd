@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
 import { navLinks as buyerNavLinks, notifications } from "../../data/buyerHomeMock";
 
@@ -21,16 +21,16 @@ const getInitial = (user) => {
 };
 
 const sellerNavLinks = [
-  { label: "Home", href: "/seller/home" },
-  { label: "My Offers", href: "/seller/offers" },
-  { label: "Create Offer", href: "/seller/offers/new" },
+  { label: "Home", to: "/seller/home" },
+  { label: "My Offers", to: "/seller/offers" },
+  { label: "Create Offer", to: "/seller/offers/new" },
 ];
 
 const providerNavLinks = [
-  { label: "Home", href: "/provider/home" },
-  { label: "Service Requests", href: "/provider/service-requests" },
-  { label: "Private Offers", href: "/provider/private-offers" },
-  { label: "Proposals", href: "/provider/proposals" },
+  { label: "Home", to: "/provider/home" },
+  { label: "Service Requests", to: "/provider/service-requests" },
+  { label: "Private Offers", to: "/provider/private-offers" },
+  { label: "Proposals", to: "/provider/proposals" },
 ];
 
 const headerVariants = {
@@ -180,13 +180,13 @@ const AppHeader = () => {
 
         <nav className="hidden items-center gap-4 text-sm font-medium text-gray-800 lg:flex">
           {variant.navLinks.map((link) => (
-            <a
+            <Link
               key={link.label}
-              href={link.href}
+              to={link.to || link.href}
               className={`rounded-full px-3 py-2 transition ${variant.navHover}`}
             >
               {link.label}
-            </a>
+            </Link>
           ))}
         </nav>
 

@@ -1,7 +1,7 @@
 export const navLinks = [
-  { label: "Home", href: "/" },
-  { label: "Offer", href: "/offers" },
-  { label: "Request", href: "/requests" },
+  { label: "Home", to: "/buyer/home" },
+  { label: "Offer", to: "/buyer/home" },
+  { label: "Request", to: "/buyer/service-requests" },
 ];
 
 export const notifications = [
