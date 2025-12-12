@@ -177,7 +177,7 @@ const ServiceRequestDetailPage = () => {
                 {offerLabel} {serviceRequest?.id ? `(SR ${serviceRequest.id})` : ""}
               </h1>
               <p className="text-sm text-slate-600">
-                Buyer Incoterm: {(serviceRequest?.incotermBuyer || "").toString().toUpperCase()} ·
+                Buyer Incoterm: {(serviceRequest?.incotermBuyer || "").toString().toUpperCase()} |
                 Destination: {destinationFor(serviceRequest)}
               </p>
             </div>
