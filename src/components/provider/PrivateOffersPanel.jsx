@@ -131,20 +131,20 @@ const PrivateOffersPanel = ({ isLoading, error, privateOffers }) => {
                     </div>
                   </td>
                   <td className="px-3 py-3 text-slate-700">
-                    {offer.negotiated_price || "—"}
+                    {offer.negotiated_price || "N/A"}
                   </td>
                   <td className="px-3 py-3 text-slate-700">
                     {offer.updated_crd || offer.updated_etd
                       ? [offer.updated_crd, offer.updated_etd]
                           .filter(Boolean)
                           .join(" / ")
-                      : "—"}
+                      : "N/A"}
                   </td>
                   <td className="px-3 py-3">
-                    <StatusBadge>{offer.status}</StatusBadge>
+                    <StatusBadge status={offer.status} />
                   </td>
                   <td className="px-3 py-3 text-slate-600">
-                    {new Date(offer.created_at).toLocaleDateString()}
+                    {offer.created_at ? new Date(offer.created_at).toLocaleDateString() : "N/A"}
                   </td>
                   <td className="px-3 py-3">
                     <button

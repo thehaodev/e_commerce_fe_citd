@@ -20,6 +20,9 @@ import AdminOffersPage from "./pages/admin/AdminOffersPage";
 import AdminOfferDetailPage from "./pages/admin/AdminOfferDetailPage";
 import ServiceRequestsPage from "./pages/provider/ServiceRequestsPage";
 import ServiceRequestDetailPage from "./pages/provider/ServiceRequestDetailPage";
+import ProviderPrivateOffersPage from "./pages/provider/ProviderPrivateOffersPage";
+import ProviderCreatePrivateOfferPage from "./pages/provider/ProviderCreatePrivateOfferPage";
+import ProviderPrivateOfferDetailPage from "./pages/provider/ProviderPrivateOfferDetailPage";
 
 export default function App() {
   const { initAuth } = useAuth();
@@ -111,6 +114,36 @@ export default function App() {
           <RequireAuth allowedRoles={["PROVIDER"]}>
             <ProviderLayout>
               <ServiceRequestDetailPage />
+            </ProviderLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/provider/private-offers"
+        element={
+          <RequireAuth allowedRoles={["PROVIDER"]}>
+            <ProviderLayout>
+              <ProviderPrivateOffersPage />
+            </ProviderLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/provider/private-offers/new"
+        element={
+          <RequireAuth allowedRoles={["PROVIDER"]}>
+            <ProviderLayout>
+              <ProviderCreatePrivateOfferPage />
+            </ProviderLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/provider/private-offers/:privateOfferId"
+        element={
+          <RequireAuth allowedRoles={["PROVIDER"]}>
+            <ProviderLayout>
+              <ProviderPrivateOfferDetailPage />
             </ProviderLayout>
           </RequireAuth>
         }

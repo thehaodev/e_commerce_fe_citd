@@ -4,17 +4,32 @@ import {
   FiAlertCircle,
   FiArrowLeft,
   FiClock,
-  FiExternalLink,
+  FiFileText,
   FiLayers,
-  FiMail,
-  FiPhone,
+  FiRefreshCw,
+  FiTag,
 } from "react-icons/fi";
+import { getPrivateOfferById } from "../../api/privateOffersApi";
 import { getOfferById } from "../../api/offerApi";
 import { getServiceRequestById } from "../../api/serviceRequestsApi";
 
-const normalizeServiceRequest = (item) => ({
+const normalizePrivateOffer = (item) => ({
   id: item?.id || "",
   offerId: item?.offer_id || "",
+  serviceRequestId: item?.service_request_id || "",
+  providerId: item?.provider_id || "",
+  negotiatedPrice: item?.negotiated_price || "",
+  updatedCrd: item?.updated_crd || null,
+  updatedEtd: item?.updated_etd || null,
+  sellerDocumentation: item?.seller_documentation || "",
+  internalNotes: item?.internal_notes ?? "",
+  status: item?.status || "",
+  createdAt: item?.created_at || "",
+  updatedAt: item?.updated_at || "",
+});
+
+const normalizeServiceRequest = (item) => ({
+  id: item?.id || "",
   buyerId: item?.buyer_id || "",
   incotermBuyer: item?.incoterm_buyer || "",
   note: item?.note || "",
@@ -38,19 +53,6 @@ const formatDate = (value) => {
   return d.toLocaleDateString();
 };
 
-const Pill = ({ children }) => (
-  <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-    {children}
-  </span>
-);
-
-const InfoRow = ({ label, value }) => (
-  <div className="flex items-start justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-    <p className="text-sm font-semibold text-slate-900 text-right">{value || "Not provided"}</p>
-  </div>
-);
-
 const destinationFor = (request) => {
   const incoterm = (request?.incotermBuyer || "").toUpperCase();
   if (incoterm === "CFR" || incoterm === "CIF") {
@@ -59,44 +61,61 @@ const destinationFor = (request) => {
   return request?.warehouseAddress || request?.warehouseCode || request?.countryCode || "Not provided";
 };
 
-const ServiceRequestDetailPage = () => {
-  const { serviceRequestId } = useParams();
+const StatusBadge = ({ value }) => (
+  <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+    {value || "PRIVATE_OFFER_CREATED"}
+  </span>
+);
+
+const ProviderPrivateOfferDetailPage = () => {
+  const { privateOfferId } = useParams();
   const navigate = useNavigate();
-  const [serviceRequest, setServiceRequest] = useState(null);
+
+  const [privateOffer, setPrivateOffer] = useState(null);
   const [offer, setOffer] = useState(null);
+  const [serviceRequest, setServiceRequest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const fetchDetail = async () => {
-    if (!serviceRequestId) {
-      setError("Service request not found.");
+    if (!privateOfferId) {
+      setError("Private offer not found.");
       setLoading(false);
       return;
     }
     setLoading(true);
     setError("");
     try {
-      const res = await getServiceRequestById(serviceRequestId);
-      const data = res?.data ?? res;
-      const normalized = normalizeServiceRequest(data);
-      setServiceRequest(normalized);
+      const res = await getPrivateOfferById(privateOfferId);
+      const data = normalizePrivateOffer(res?.data ?? res);
+      setPrivateOffer(data);
 
-      if (normalized.offerId) {
+      if (data.offerId) {
         try {
-          const offerRes = await getOfferById(normalized.offerId);
+          const offerRes = await getOfferById(data.offerId);
           setOffer(offerRes?.data ?? offerRes);
-        } catch (offerErr) {
-          console.error("Failed to load offer detail", offerErr);
+        } catch (err) {
+          setOffer(null);
+        }
+      }
+
+      if (data.serviceRequestId) {
+        try {
+          const srRes = await getServiceRequestById(data.serviceRequestId);
+          setServiceRequest(normalizeServiceRequest(srRes?.data ?? srRes));
+        } catch (err) {
+          setServiceRequest(null);
         }
       }
     } catch (err) {
       const msg =
         err?.response?.data?.detail ||
         err?.message ||
-        "Service request not found or you are not allowed to view it.";
+        "Private offer not found or you are not allowed to view it.";
       setError(msg);
-      setServiceRequest(null);
+      setPrivateOffer(null);
       setOffer(null);
+      setServiceRequest(null);
     } finally {
       setLoading(false);
     }
@@ -105,36 +124,34 @@ const ServiceRequestDetailPage = () => {
   useEffect(() => {
     fetchDetail();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceRequestId]);
+  }, [privateOfferId]);
 
   const offerLabel = useMemo(() => {
-    if (!offer) return "Service Request";
-    return offer.product_name || `Offer ${offer.id || ""}` || "Service Request";
+    if (!offer) return "Offer";
+    return offer.product_name || `Offer ${offer.id || ""}` || "Offer";
   }, [offer]);
-
-  const handleCreatePrivateOffer = () => {
-    if (!serviceRequest?.id || !serviceRequest?.offerId) {
-      window.alert("Missing service request or offer information for this private offer.");
-      return;
-    }
-    navigate(
-      `/provider/private-offers/new?serviceRequestId=${serviceRequest.id}&offerId=${serviceRequest.offerId}`
-    );
-  };
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
           onClick={() => navigate("/provider/service-requests")}
           className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:border-emerald-200 hover:text-emerald-700"
         >
           <FiArrowLeft className="h-4 w-4" />
-          Back to Service Requests
+          Service Requests
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate("/provider/private-offers")}
+          className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:border-emerald-200 hover:text-emerald-700"
+        >
+          <FiArrowLeft className="h-4 w-4" />
+          Back to Private Offers
         </button>
         <span className="text-xs font-semibold uppercase tracking-wide text-emerald-600">
-          Detail
+          Private Offer Detail
         </span>
       </div>
 
@@ -155,7 +172,7 @@ const ServiceRequestDetailPage = () => {
         <div className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           <FiAlertCircle className="mt-0.5" />
           <div className="space-y-1">
-            <p className="font-semibold">Could not load this service request.</p>
+            <p className="font-semibold">Private offer not found or inaccessible.</p>
             <p className="text-xs text-rose-600">{error}</p>
             <button
               type="button"
@@ -171,21 +188,29 @@ const ServiceRequestDetailPage = () => {
           <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">
-                Service Request
+                Private Offer
               </p>
               <h1 className="text-2xl font-bold text-slate-900">
-                {offerLabel} {serviceRequest?.id ? `(SR ${serviceRequest.id})` : ""}
+                {privateOffer?.id ? `#PO-${privateOffer.id}` : "Private Offer"}
               </h1>
               <p className="text-sm text-slate-600">
-                Buyer Incoterm: {(serviceRequest?.incotermBuyer || "").toString().toUpperCase()} ·
-                Destination: {destinationFor(serviceRequest)}
+                Linked to {offerLabel} and service request{" "}
+                {privateOffer?.serviceRequestId ? `#${privateOffer.serviceRequestId}` : "N/A"}.
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <Pill>{serviceRequest?.status || "REQUESTED"}</Pill>
+              <StatusBadge value={privateOffer?.status} />
               <span className="text-xs text-slate-500">
-                Created {formatDate(serviceRequest?.createdAt)}
+                Created {formatDate(privateOffer?.createdAt)}
               </span>
+              <button
+                type="button"
+                onClick={fetchDetail}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700"
+              >
+                <FiRefreshCw className="h-4 w-4" />
+                Refresh
+              </button>
             </div>
           </div>
 
@@ -234,56 +259,56 @@ const ServiceRequestDetailPage = () => {
                     {serviceRequest?.note || "No additional notes provided."}
                   </p>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <InfoRow label="Contact name" value={serviceRequest?.contactName} />
-                  <div className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-                    <FiPhone className="text-slate-500" />
-                    <div className="text-right">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Phone
-                      </p>
-                      <p className="text-sm font-semibold text-slate-900">
-                        {serviceRequest?.contactPhone || "Not provided"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-                    <FiMail className="text-slate-500" />
-                    <div className="text-right">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Email
-                      </p>
-                      <p className="text-sm font-semibold text-slate-900 break-all">
-                        {serviceRequest?.contactEmail || "Not provided"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
 
             <div className="space-y-4">
-              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-5 shadow-sm">
-                <h3 className="text-lg font-bold text-emerald-900 mb-2">Next steps</h3>
-                <p className="text-sm text-emerald-800 mb-4">
-                  Create a private offer tailored to this request or return to the list to pick
-                  another one.
-                </p>
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={handleCreatePrivateOffer}
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
-                  >
-                    <FiExternalLink className="h-4 w-4" />
-                    Create Private Offer
-                  </button>
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-5 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 text-slate-900">
+                  <FiFileText className="h-5 w-5 text-emerald-500" />
+                  <h3 className="text-lg font-bold">Private Offer</h3>
+                </div>
+                <InfoRow label="Private Offer ID" value={privateOffer?.id ? `#PO-${privateOffer.id}` : "N/A"} />
+                <InfoRow label="Negotiated price" value={privateOffer?.negotiatedPrice} />
+                <InfoRow label="Updated CRD" value={formatDate(privateOffer?.updatedCrd)} />
+                <InfoRow label="Updated ETD" value={formatDate(privateOffer?.updatedEtd)} />
+                <InfoRow label="Status" value={privateOffer?.status || "PRIVATE_OFFER_CREATED"} />
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                    Seller documentation
+                  </p>
+                  <p className="rounded-xl border border-emerald-100 bg-white px-3 py-3 text-sm text-slate-800">
+                    {privateOffer?.sellerDocumentation || "No documentation provided."}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                    Internal notes
+                  </p>
+                  <p className="rounded-xl border border-emerald-100 bg-white px-3 py-3 text-sm text-slate-800">
+                    {privateOffer?.internalNotes || "No internal notes."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+                  Navigate
+                </h3>
+                <div className="flex flex-col gap-2">
                   <button
                     type="button"
                     onClick={() => navigate("/provider/service-requests")}
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300"
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700"
                   >
                     Back to Service Requests
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/provider/private-offers")}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+                  >
+                    Back to My Private Offers
                   </button>
                 </div>
               </div>
@@ -295,4 +320,11 @@ const ServiceRequestDetailPage = () => {
   );
 };
 
-export default ServiceRequestDetailPage;
+const InfoRow = ({ label, value }) => (
+  <div className="flex items-start justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+    <p className="text-sm font-semibold text-slate-900 text-right break-all">{value || "Not provided"}</p>
+  </div>
+);
+
+export default ProviderPrivateOfferDetailPage;
