@@ -6,6 +6,7 @@ const statusStyles = {
   PROPOSAL_SENT: "bg-amber-100 text-amber-700",
   REJECTED: "bg-rose-100 text-rose-700",
   EXPIRED: "bg-slate-200 text-slate-700",
+  WITHDRAWN: "bg-slate-200 text-slate-700",
 };
 
 const StatusBadge = ({ status }) => (
@@ -50,21 +51,52 @@ const FILTERS = [
   { key: "AWARDED", label: "Awarded" },
   { key: "REJECTED", label: "Rejected" },
   { key: "EXPIRED", label: "Expired" },
+  { key: "WITHDRAWN", label: "Withdrawn" },
 ];
+
+const formatDate = (value) => {
+  if (!value) return "N/A";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString();
+};
+
+const getDestination = (serviceRequest) => {
+  if (!serviceRequest) return "Destination not provided";
+  const incoterm = (serviceRequest.incoterm_buyer || serviceRequest.incotermBuyer || "").toUpperCase();
+  if (incoterm === "CFR" || incoterm === "CIF") {
+    return (
+      serviceRequest.port_of_discharge ||
+      serviceRequest.portOfDischarge ||
+      serviceRequest.country_code ||
+      serviceRequest.countryCode ||
+      "Destination not provided"
+    );
+  }
+  return (
+    serviceRequest.warehouse_address ||
+    serviceRequest.warehouseAddress ||
+    serviceRequest.warehouse_code ||
+    serviceRequest.warehouseCode ||
+    serviceRequest.country_code ||
+    serviceRequest.countryCode ||
+    "Destination not provided"
+  );
+};
 
 /**
  * @typedef {Object} Proposal
  * @property {string} id
  * @property {string} offer_id
  * @property {string} service_request_id
- * @property {string} service_fee
- * @property {string} total_cost
- * @property {number} lead_time
- * @property {string} eta
- * @property {string} service_conditions
- * @property {string} extra_charges
+ * @property {string | number | null} service_fee
+ * @property {string | number | null} total_cost
+ * @property {number | null} lead_time
+ * @property {string | null} eta
+ * @property {string | null} service_conditions
+ * @property {string | number | null} extra_charges
  * @property {string | null} [provider_notes]
- * @property {"PROPOSAL_SENT" | "AWARDED" | "REJECTED" | "EXPIRED"} status
+ * @property {"PROPOSAL_SENT" | "AWARDED" | "REJECTED" | "EXPIRED" | "WITHDRAWN"} status
  * @property {string} created_at
  */
 
@@ -73,8 +105,9 @@ const FILTERS = [
  * @param {boolean} props.isLoading
  * @param {string | null} props.error
  * @param {Proposal[]} props.proposals
+ * @param {Record<string, any>} [props.serviceRequestMap]
  */
-const ProposalsPanel = ({ isLoading, error, proposals }) => {
+const ProposalsPanel = ({ isLoading, error, proposals, serviceRequestMap = {} }) => {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
@@ -92,10 +125,7 @@ const ProposalsPanel = ({ isLoading, error, proposals }) => {
           proposal.service_request_id?.toLowerCase().includes(query)
         );
       })
-      .sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [proposals, searchTerm, statusFilter]);
 
   return (
@@ -124,7 +154,7 @@ const ProposalsPanel = ({ isLoading, error, proposals }) => {
           ))}
           <input
             type="text"
-            placeholder="Search product or buyer"
+            placeholder="Search by offer or service request"
             className="w-full sm:w-60 bg-white border border-slate-300 rounded-full px-4 py-2 text-sm text-slate-700 focus:ring-2 focus:ring-amber-300 focus:border-transparent"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -185,53 +215,54 @@ const ProposalsPanel = ({ isLoading, error, proposals }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredProposals.map((proposal) => (
-                <tr
-                  key={proposal.id}
-                  className={`hover:bg-slate-50 transition-colors ${
-                    proposal.status === "AWARDED" ? "bg-emerald-50/60" : ""
-                  }`}
-                >
-                  <td className="px-3 py-3 text-slate-900 font-medium">
-                    {proposal.offer_id}
-                    <div className="text-xs text-slate-500">
-                      SR #{proposal.service_request_id}
-                    </div>
-                  </td>
-                  <td className="px-3 py-3 text-slate-700">Destination TBD</td>
-                  <td className="px-3 py-3 text-slate-700">
-                    {proposal.service_fee || "—"}
-                  </td>
-                  <td className="px-3 py-3 text-slate-700">
-                    {proposal.total_cost || "—"}
-                  </td>
-                  <td className="px-3 py-3 text-slate-700">
-                    {proposal.lead_time ? `${proposal.lead_time} days` : "—"}
-                  </td>
-                  <td className="px-3 py-3 text-slate-700">
-                    {proposal.eta
-                      ? new Date(proposal.eta).toLocaleDateString()
-                      : "—"}
-                  </td>
-                  <td className="px-3 py-3">
-                    <StatusBadge status={proposal.status} />
-                  </td>
-                  <td className="px-3 py-3 text-slate-600">
-                    {new Date(proposal.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-3 py-3">
-                    <button
-                      type="button"
-                      className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold text-sm shadow-sm"
-                      onClick={() =>
-                        navigate(`/provider/proposals/${proposal.id}`)
-                      }
-                    >
-                      View Proposal
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {filteredProposals.map((proposal) => {
+                const serviceRequest = serviceRequestMap[proposal.service_request_id];
+                return (
+                  <tr
+                    key={proposal.id}
+                    className={`hover:bg-slate-50 transition-colors ${
+                      proposal.status === "AWARDED" ? "bg-emerald-50/60" : ""
+                    }`}
+                  >
+                    <td className="px-3 py-3 text-slate-900 font-medium">
+                      {proposal.offer_id}
+                      <div className="text-xs text-slate-500">
+                        SR #{proposal.service_request_id}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 text-slate-700">
+                      {getDestination(serviceRequest)}
+                    </td>
+                    <td className="px-3 py-3 text-slate-700">
+                      {proposal.service_fee ?? "N/A"}
+                    </td>
+                    <td className="px-3 py-3 text-slate-700">
+                      {proposal.total_cost ?? "N/A"}
+                    </td>
+                    <td className="px-3 py-3 text-slate-700">
+                      {proposal.lead_time ? `${proposal.lead_time} days` : "N/A"}
+                    </td>
+                    <td className="px-3 py-3 text-slate-700">
+                      {proposal.eta ? formatDate(proposal.eta) : "N/A"}
+                    </td>
+                    <td className="px-3 py-3">
+                      <StatusBadge status={proposal.status} />
+                    </td>
+                    <td className="px-3 py-3 text-slate-600">
+                      {formatDate(proposal.created_at)}
+                    </td>
+                    <td className="px-3 py-3">
+                      <button
+                        type="button"
+                        className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold text-sm shadow-sm"
+                        onClick={() => navigate(`/provider/proposals/${proposal.id}`)}
+                      >
+                        View Proposal
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

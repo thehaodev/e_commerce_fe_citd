@@ -5,9 +5,10 @@ import useAuth from "../../hooks/useAuth";
 import AppHeader from "./AppHeader";
 
 const navItems = [
+  { label: "Dashboard", path: "/provider/home" },
   { label: "Service Requests", path: "/provider/service-requests" },
   { label: "Private Offers", path: "/provider/private-offers" },
-  { label: "Proposals", path: "/provider/proposals", disabled: true },
+  { label: "Proposals", path: "/provider/proposals" },
 ];
 
 const ProviderLayout = ({ children }) => {
@@ -22,7 +23,9 @@ const ProviderLayout = ({ children }) => {
     ? "Service Requests"
     : location.pathname.includes("private-offers")
       ? "Private Offers"
-      : "Provider Workspace";
+      : location.pathname.includes("proposals")
+        ? "Proposals"
+        : "Provider Workspace";
 
   const handleNav = (item) => {
     if (item.disabled) return;
@@ -42,7 +45,7 @@ const ProviderLayout = ({ children }) => {
               Service Provider Dashboard
             </p>
             <div className="flex items-center gap-2 text-slate-900">
-              <h1 className="text-2xl font-bold">Provider Workspace</h1>
+          <h1 className="text-2xl font-bold">Provider Workspace</h1>
               <FiChevronRight className="hidden text-emerald-400 md:block" />
               <span className="hidden text-sm font-semibold text-emerald-700 md:block">
                 {subtitle}
