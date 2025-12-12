@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   FiAlertCircle,
@@ -12,6 +12,7 @@ import {
   FiMapPin,
   FiPackage,
   FiSend,
+  FiX,
 } from "react-icons/fi";
 import { getOfferById } from "../../api/offerApi";
 import { checkBuyerInterest, createBuyerInterest } from "../../api/buyerInterestApi";
@@ -49,6 +50,31 @@ const InterestBadge = ({ interested }) =>
     </span>
   );
 
+const ToastStack = ({ toasts, onDismiss }) => {
+  if (!toasts?.length) return null;
+
+  return (
+    <div className="fixed top-4 right-4 z-50 space-y-2">
+      {toasts.map((toast) => (
+        <div
+          key={toast.id}
+          className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 shadow-lg"
+        >
+          <FiCheckCircle className="h-5 w-5" />
+          <span className="flex-1">{toast.message}</span>
+          <button
+            type="button"
+            onClick={() => onDismiss?.(toast.id)}
+            className="text-emerald-500 hover:text-emerald-700"
+          >
+            <FiX className="h-4 w-4" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const BuyerOfferDetailPage = () => {
   const navigate = useNavigate();
   const { offerId } = useParams();
@@ -62,6 +88,19 @@ const BuyerOfferDetailPage = () => {
   const [isInterested, setIsInterested] = useState(false);
   const [interestError, setInterestError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
+  const [toasts, setToasts] = useState([]);
+
+  const showToast = useCallback((message) => {
+    const id = `${Date.now()}-${Math.random()}`;
+    setToasts((prev) => [...prev, { id, message }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, 3200);
+  }, []);
+
+  const dismissToast = useCallback((id) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  }, []);
 
   const fetchOffer = async () => {
     if (!offerId) {
@@ -122,6 +161,7 @@ const BuyerOfferDetailPage = () => {
       await createBuyerInterest(offerId);
       setIsInterested(true);
       setActionMessage("You have expressed interest in this offer.");
+      showToast("Interest expressed successfully.");
     } catch (err) {
       const msg =
         err?.response?.data?.message ||
@@ -148,6 +188,8 @@ const BuyerOfferDetailPage = () => {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
+
       <div className="flex items-center gap-3">
         <button
           type="button"
