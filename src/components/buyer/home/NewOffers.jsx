@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+
 const formatDate = (value) => {
   if (!value) return null;
   const date = new Date(value);
@@ -20,6 +22,8 @@ const NewOffers = ({
   submittingOfferId = null,
   onExpressInterest,
 }) => {
+  const navigate = useNavigate();
+
   const renderSkeleton = () => (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {[1, 2, 3, 4].map((idx) => (
@@ -102,7 +106,14 @@ const NewOffers = ({
                   <p className="mt-1 text-xs font-semibold text-gray-500">
                     {readyDate ? `Cargo ready: ${readyDate}` : createdDate ? `Posted: ${createdDate}` : "Just added"}
                   </p>
-                  <div className="mt-auto pt-3">
+                  <div className="mt-auto flex flex-col gap-2 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => offer?.id && navigate(`/buyer/offers/${offer.id}`)}
+                      className="w-full rounded-xl border border-amber-100 bg-white px-4 py-2 text-sm font-semibold text-amber-800 transition hover:border-amber-200"
+                    >
+                      View details
+                    </button>
                     <button
                       type="button"
                       disabled={isInterested || isSubmitting}

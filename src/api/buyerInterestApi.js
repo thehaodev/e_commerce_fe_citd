@@ -3,7 +3,8 @@ import httpClient from "./httpClient";
 export const getMyBuyerInterests = () => httpClient.get("/buyer-interest/my");
 
 export const createBuyerInterest = (offerId) =>
-  httpClient.post(`/buyer-interest/${offerId}`);
+  // Explicit empty body to satisfy POST signature expected by backend.
+  httpClient.post(`/buyer-interest/${offerId}`, {});
 
 export const checkBuyerInterest = async (offerId) => {
   const res = await httpClient.get("/buyer-interest/check", {
