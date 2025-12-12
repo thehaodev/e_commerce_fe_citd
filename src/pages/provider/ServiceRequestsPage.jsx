@@ -1,63 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiAlertCircle, FiArrowRight, FiRefreshCw, FiSearch } from "react-icons/fi";
-import { getProviderServiceRequests } from "../../api/providerApi";
+import { getOfferById } from "../../api/offerApi";
+import { getMyServiceRequests } from "../../api/serviceRequestsApi";
 
-const normalizeServiceRequest = (item) => {
-  const data = item || {};
-  const offer = data.offer || data.offer_detail || data.offerDetail || {};
-  const buyer = data.buyer || {};
-
-  const id =
-    data.id || data.service_request_id || data.serviceRequestId || data.service_request_uuid;
-  const offerCode = data.offer_code || data.offerCode || offer.offer_code || offer.code;
-  const offerTitle =
-    data.offer_title || data.offerTitle || offer.product_name || offer.title || "Offer";
-  const buyerName =
-    data.buyer_name ||
-    data.buyerName ||
-    buyer.company_name ||
-    buyer.full_name ||
-    buyer.name ||
-    data.buyer_company ||
-    "Buyer";
-  const incoterm =
-    (data.incoterm_buyer ||
-      data.incotermBuyer ||
-      data.buyer_incoterm ||
-      data.incoterm ||
-      data.incoterm_buyer_code ||
-      "")?.toString()?.toUpperCase() || "—";
-  const destination =
-    data.port_of_discharge ||
-    data.destination ||
-    data.delivery_location ||
-    data.warehouse ||
-    data.port ||
-    data.buyer_destination ||
-    data.destination_port ||
-    "—";
-  const createdAt = data.created_at || data.createdAt || data.created_date;
-  const status =
-    (data.status || "")
-      .toString()
-      .replace(/_/g, " ")
-      .trim() || "REQUESTED";
-
-  return {
-    id,
-    offerCode,
-    offerTitle,
-    buyerName,
-    incotermBuyer: incoterm,
-    destination,
-    createdAt,
-    status,
-  };
-};
+const normalizeServiceRequest = (item) => ({
+  id: item?.id || "",
+  offerId: item?.offer_id || "",
+  buyerId: item?.buyer_id || "",
+  incotermBuyer: item?.incoterm_buyer || "",
+  note: item?.note || "",
+  status: item?.status || "",
+  portOfDischarge: item?.port_of_discharge || "",
+  countryCode: item?.country_code || "",
+  insuranceType: item?.insurance_type || "",
+  warehouseAddress: item?.warehouse_address || "",
+  warehouseCode: item?.warehouse_code || "",
+  contactName: item?.contact_name || "",
+  contactPhone: item?.contact_phone || "",
+  contactEmail: item?.contact_email || "",
+  createdAt: item?.created_at || "",
+  updatedAt: item?.updated_at || "",
+});
 
 const formatDate = (value) => {
-  if (!value) return "—";
+  if (!value) return "Not provided";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
   return d.toLocaleDateString();
@@ -65,13 +32,13 @@ const formatDate = (value) => {
 
 const StatusPill = ({ label }) => (
   <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-    {label}
+    {label || "REQUESTED"}
   </span>
 );
 
 const SkeletonRow = () => (
   <tr className="animate-pulse">
-    {Array.from({ length: 6 }).map((_, idx) => (
+    {Array.from({ length: 7 }).map((_, idx) => (
       <td key={idx} className="px-3 py-3">
         <div className="h-4 w-28 rounded bg-slate-200" />
       </td>
@@ -82,9 +49,18 @@ const SkeletonRow = () => (
   </tr>
 );
 
+const getDestination = (req) => {
+  const incoterm = (req.incotermBuyer || "").toUpperCase();
+  if (incoterm === "CFR" || incoterm === "CIF") {
+    return req.portOfDischarge || req.countryCode || "Not provided";
+  }
+  return req.warehouseAddress || req.warehouseCode || req.countryCode || "Not provided";
+};
+
 const ServiceRequestsPage = () => {
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
+  const [offers, setOffers] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -93,22 +69,37 @@ const ServiceRequestsPage = () => {
     setLoading(true);
     setError("");
     try {
-      const res = await getProviderServiceRequests();
+      const res = await getMyServiceRequests();
       const payload = res?.data ?? res;
       const list = Array.isArray(payload?.data)
         ? payload.data
-        : Array.isArray(payload?.items)
-          ? payload.items
-          : Array.isArray(payload)
-            ? payload
-            : [];
-      setRequests(list.map(normalizeServiceRequest));
+        : Array.isArray(payload)
+          ? payload
+          : [];
+      const normalized = list.map(normalizeServiceRequest);
+
+      const offerIds = [...new Set(normalized.map((item) => item.offerId).filter(Boolean))];
+      const offerMap = {};
+      await Promise.all(
+        offerIds.map(async (offerId) => {
+          try {
+            const offerRes = await getOfferById(offerId);
+            offerMap[offerId] = offerRes?.data ?? offerRes;
+          } catch (err) {
+            offerMap[offerId] = null;
+          }
+        })
+      );
+
+      setOffers(offerMap);
+      setRequests(normalized);
     } catch (err) {
       const msg =
         err?.response?.data?.detail ||
         err?.message ||
         "Could not load service requests for this provider.";
       setError(msg);
+      setRequests([]);
     } finally {
       setLoading(false);
     }
@@ -118,30 +109,37 @@ const ServiceRequestsPage = () => {
     fetchRequests();
   }, []);
 
+  const rows = useMemo(
+    () => requests.map((item) => ({ ...item, offer: item.offerId ? offers[item.offerId] : null })),
+    [requests, offers]
+  );
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return requests;
-    return requests.filter((item) => {
+    if (!term) return rows;
+    return rows.filter((item) => {
       const haystack = [
-        item.offerCode,
-        item.offerTitle,
-        item.buyerName,
-        item.incotermBuyer,
-        item.destination,
+        item.id,
+        item.offerId,
+        item.offer?.product_name,
+        item.offer?.id,
+        item.contactName,
+        item.contactEmail,
+        item.note,
       ]
         .filter(Boolean)
         .map((v) => v.toString().toLowerCase())
         .join(" ");
       return haystack.includes(term);
     });
-  }, [requests, search]);
+  }, [rows, search]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
       <div className="space-y-1">
         <h1 className="text-3xl font-bold text-slate-900">Service Requests</h1>
         <p className="text-sm text-slate-600">
-          Review buyer logistics requests and kick off private offer flows.
+          Review buyer requests and start your private offers.
         </p>
       </div>
 
@@ -150,7 +148,7 @@ const ServiceRequestsPage = () => {
           <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by Offer code, Buyer, or Incoterm…"
+            placeholder="Search by ID, Offer, or Buyer..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-xl border border-slate-200 bg-slate-50 px-10 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-200 focus:ring-2 focus:ring-emerald-100"
@@ -170,7 +168,7 @@ const ServiceRequestsPage = () => {
         <div className="px-4 py-4">
           <h2 className="text-lg font-semibold text-slate-900">Visible to you</h2>
           <p className="text-sm text-slate-600">
-            These requests are ready for private offers. Open one to review details.
+            These requests come from buyers. Open one to review details and take action.
           </p>
         </div>
 
@@ -179,9 +177,10 @@ const ServiceRequestsPage = () => {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="px-3 py-3 text-left">Offer</th>
-                  <th className="px-3 py-3 text-left">Buyer</th>
-                  <th className="px-3 py-3 text-left">Incoterm</th>
+                  <th className="px-3 py-3 text-left">Service Request</th>
+                  <th className="px-3 py-3 text-left">Offer / Product</th>
+                  <th className="px-3 py-3 text-left">Buyer Contact</th>
+                  <th className="px-3 py-3 text-left">Incoterm (Buyer)</th>
                   <th className="px-3 py-3 text-left">Destination</th>
                   <th className="px-3 py-3 text-left">Created</th>
                   <th className="px-3 py-3 text-left">Status</th>
@@ -222,9 +221,10 @@ const ServiceRequestsPage = () => {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="px-3 py-3 text-left">Offer</th>
-                  <th className="px-3 py-3 text-left">Buyer</th>
-                  <th className="px-3 py-3 text-left">Incoterm</th>
+                  <th className="px-3 py-3 text-left">Service Request</th>
+                  <th className="px-3 py-3 text-left">Offer / Product</th>
+                  <th className="px-3 py-3 text-left">Buyer Contact</th>
+                  <th className="px-3 py-3 text-left">Incoterm (Buyer)</th>
                   <th className="px-3 py-3 text-left">Destination</th>
                   <th className="px-3 py-3 text-left">Created</th>
                   <th className="px-3 py-3 text-left">Status</th>
@@ -233,28 +233,31 @@ const ServiceRequestsPage = () => {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filtered.map((req) => {
-                  const label = req.offerCode || req.offerTitle || "Service Request";
-                  const hasId = Boolean(req.id);
+                  const srLabel = req.id ? `#SR-${req.id}` : "Service Request";
+                  const offerLabel = req.offer?.product_name || req.offerId || "Offer";
+                  const buyerLabel = req.contactName || req.contactEmail || req.buyerId || "Unknown";
+                  const destination = getDestination(req);
+
                   return (
-                    <tr
-                      key={req.id || `${req.offerCode}-${req.buyerName}`}
-                      className="hover:bg-slate-50 transition"
-                    >
-                      <td className="px-3 py-3 font-semibold text-slate-900">
+                    <tr key={req.id || `${req.offerId}-${req.buyerId}`} className="hover:bg-slate-50 transition">
+                      <td className="px-3 py-3 font-semibold text-slate-900">{srLabel}</td>
+                      <td className="px-3 py-3 text-slate-800">
                         <div className="flex flex-col">
-                          <span>{label}</span>
-                          {req.offerTitle && req.offerCode && (
-                            <span className="text-xs text-slate-500">{req.offerTitle}</span>
+                          <span className="font-semibold">{offerLabel}</span>
+                          {req.offer?.port_of_loading && (
+                            <span className="text-xs text-slate-500">
+                              Port: {req.offer.port_of_loading}
+                            </span>
                           )}
                         </div>
                       </td>
-                      <td className="px-3 py-3 text-slate-700">{req.buyerName}</td>
+                      <td className="px-3 py-3 text-slate-700">{buyerLabel}</td>
                       <td className="px-3 py-3">
                         <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                          {req.incotermBuyer}
+                          {(req.incotermBuyer || "").toString().toUpperCase() || "N/A"}
                         </span>
                       </td>
-                      <td className="px-3 py-3 text-slate-700">{req.destination}</td>
+                      <td className="px-3 py-3 text-slate-700">{destination}</td>
                       <td className="px-3 py-3 text-slate-600">{formatDate(req.createdAt)}</td>
                       <td className="px-3 py-3">
                         <StatusPill label={req.status} />
@@ -262,10 +265,10 @@ const ServiceRequestsPage = () => {
                       <td className="px-3 py-3">
                         <button
                           type="button"
-                          onClick={() => hasId && navigate(`/provider/service-requests/${req.id}`)}
-                          disabled={!hasId}
+                          onClick={() => req.id && navigate(`/provider/service-requests/${req.id}`)}
+                          disabled={!req.id}
                           className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${
-                            hasId
+                            req.id
                               ? "bg-emerald-500 text-white shadow-sm hover:bg-emerald-600"
                               : "bg-slate-100 text-slate-400 cursor-not-allowed"
                           }`}
