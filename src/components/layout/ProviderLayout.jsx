@@ -6,7 +6,7 @@ import AppHeader from "./AppHeader";
 
 const navItems = [
   { label: "Service Requests", path: "/provider/service-requests" },
-  { label: "Private Offers", path: "/provider/private-offers", disabled: true },
+  { label: "Private Offers", path: "/provider/private-offers" },
   { label: "Proposals", path: "/provider/proposals", disabled: true },
 ];
 
@@ -20,7 +20,9 @@ const ProviderLayout = ({ children }) => {
 
   const subtitle = location.pathname.includes("service-requests")
     ? "Service Requests"
-    : "Provider Workspace";
+    : location.pathname.includes("private-offers")
+      ? "Private Offers"
+      : "Provider Workspace";
 
   const handleNav = (item) => {
     if (item.disabled) return;
