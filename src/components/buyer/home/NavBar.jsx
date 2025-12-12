@@ -1,9 +1,6 @@
 import { useState } from "react";
-import {
-  navLinks,
-  notifications,
-  userProfile,
-} from "../../../data/buyerHomeMock";
+import { Link } from "react-router-dom";
+import { navLinks, notifications, userProfile } from "../../../data/buyerHomeMock";
 
 const NavBar = () => {
   const [showNotif, setShowNotif] = useState(false);
@@ -49,13 +46,13 @@ const NavBar = () => {
 
         <nav className="hidden items-center gap-4 text-sm font-medium text-gray-800 lg:flex">
           {navLinks.map((link) => (
-            <a
+            <Link
               key={link.label}
-              href={link.href}
+              to={link.to || link.href}
               className="rounded-full px-3 py-2 transition hover:bg-amber-50 hover:text-amber-600"
             >
               {link.label}
-            </a>
+            </Link>
           ))}
         </nav>
 
