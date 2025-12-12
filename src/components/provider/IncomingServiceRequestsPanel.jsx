@@ -50,12 +50,18 @@ const SkeletonRow = () => (
  * @param {string | null} props.error
  * @param {ServiceRequest[]} props.serviceRequests
  * @param {() => void} [props.onRetry]
+ * @param {(id: string) => void} [props.onOpenDetail]
+ * @param {(id: string) => void} [props.onCreatePrivateOffer]
+ * @param {(privateOfferId: string) => void} [props.onOpenPrivateOffer]
  */
 const IncomingServiceRequestsPanel = ({
   isLoading,
   error,
   serviceRequests,
   onRetry,
+  onOpenDetail,
+  onCreatePrivateOffer,
+  onOpenPrivateOffer,
 }) => {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
@@ -160,7 +166,7 @@ const IncomingServiceRequestsPanel = ({
                           type="button"
                           className="px-4 py-2 rounded-full border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 text-sm font-semibold"
                           onClick={() =>
-                            console.log("View Private Offer", request.id)
+                            request.privateOfferId && onOpenPrivateOffer?.(request.privateOfferId)
                           }
                         >
                           View Private Offer
@@ -168,20 +174,16 @@ const IncomingServiceRequestsPanel = ({
                         <button
                           type="button"
                           className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold text-sm shadow-sm"
-                          onClick={() =>
-                            console.log("Continue to Proposal", request.id)
-                          }
+                          onClick={() => onOpenDetail?.(request.id)}
                         >
-                          Continue to Proposal
+                          View Request
                         </button>
                       </div>
                     ) : (
                       <button
                         type="button"
                         className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold text-sm shadow-sm"
-                        onClick={() =>
-                          console.log("Create Private Offer", request.id)
-                        }
+                        onClick={() => onCreatePrivateOffer?.(request.id)}
                       >
                         Create Private Offer
                       </button>

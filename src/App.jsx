@@ -23,6 +23,8 @@ import ServiceRequestDetailPage from "./pages/provider/ServiceRequestDetailPage"
 import ProviderPrivateOffersPage from "./pages/provider/ProviderPrivateOffersPage";
 import ProviderCreatePrivateOfferPage from "./pages/provider/ProviderCreatePrivateOfferPage";
 import ProviderPrivateOfferDetailPage from "./pages/provider/ProviderPrivateOfferDetailPage";
+import ProviderProposalsPage from "./pages/provider/ProviderProposalsPage";
+import ProviderProposalDetailPage from "./pages/provider/ProviderProposalDetailPage";
 
 export default function App() {
   const { initAuth } = useAuth();
@@ -99,6 +101,14 @@ export default function App() {
         }
       />
       <Route
+        path="/provider"
+        element={
+          <RequireAuth allowedRoles={["PROVIDER"]}>
+            <Navigate to="/provider/private-offers" replace />
+          </RequireAuth>
+        }
+      />
+      <Route
         path="/provider/service-requests"
         element={
           <RequireAuth allowedRoles={["PROVIDER"]}>
@@ -144,6 +154,26 @@ export default function App() {
           <RequireAuth allowedRoles={["PROVIDER"]}>
             <ProviderLayout>
               <ProviderPrivateOfferDetailPage />
+            </ProviderLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/provider/proposals"
+        element={
+          <RequireAuth allowedRoles={["PROVIDER"]}>
+            <ProviderLayout>
+              <ProviderProposalsPage />
+            </ProviderLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/provider/proposals/:proposalId"
+        element={
+          <RequireAuth allowedRoles={["PROVIDER"]}>
+            <ProviderLayout>
+              <ProviderProposalDetailPage />
             </ProviderLayout>
           </RequireAuth>
         }

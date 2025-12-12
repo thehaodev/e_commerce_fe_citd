@@ -2,7 +2,22 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiAlertCircle, FiArrowRight, FiRefreshCw, FiSearch } from "react-icons/fi";
 import { getOfferById } from "../../api/offerApi";
-import { getMyServiceRequests } from "../../api/serviceRequestsApi";
+import { fetchMyPrivateOffers } from "../../api/privateOffersApi";
+import { getMyProposals } from "../../api/proposalsApi";
+import { getServiceRequestById } from "../../api/serviceRequestsApi";
+
+const normalizePrivateOffer = (item) => ({
+  id: item?.id || "",
+  serviceRequestId: item?.service_request_id || "",
+  offerId: item?.offer_id || "",
+});
+
+const normalizeProposal = (item) => ({
+  id: item?.id || "",
+  serviceRequestId: item?.service_request_id || "",
+  offerId: item?.offer_id || "",
+  status: item?.status || "",
+});
 
 const normalizeServiceRequest = (item) => ({
   id: item?.id || "",
@@ -17,7 +32,6 @@ const normalizeServiceRequest = (item) => ({
   warehouseAddress: item?.warehouse_address || "",
   warehouseCode: item?.warehouse_code || "",
   contactName: item?.contact_name || "",
-  contactPhone: item?.contact_phone || "",
   contactEmail: item?.contact_email || "",
   createdAt: item?.created_at || "",
   updatedAt: item?.updated_at || "",
@@ -69,16 +83,51 @@ const ServiceRequestsPage = () => {
     setLoading(true);
     setError("");
     try {
-      const res = await getMyServiceRequests();
-      const payload = res?.data ?? res;
-      const list = Array.isArray(payload?.data)
-        ? payload.data
-        : Array.isArray(payload)
-          ? payload
-          : [];
-      const normalized = list.map(normalizeServiceRequest);
+      const [poRes, proposalRes] = await Promise.all([fetchMyPrivateOffers(), getMyProposals()]);
+      const poPayload = poRes?.data ?? poRes ?? [];
+      const proposalsPayload = proposalRes?.data ?? proposalRes ?? [];
 
-      const offerIds = [...new Set(normalized.map((item) => item.offerId).filter(Boolean))];
+      const privateOffers = (Array.isArray(poPayload?.data) ? poPayload.data : poPayload).map(
+        normalizePrivateOffer
+      );
+      const proposals = (Array.isArray(proposalsPayload?.data) ? proposalsPayload.data : proposalsPayload).map(
+        normalizeProposal
+      );
+
+      const srIds = [
+        ...new Set(
+          [...privateOffers, ...proposals]
+            .map((item) => item.serviceRequestId)
+            .filter(Boolean)
+        ),
+      ];
+
+      if (srIds.length === 0) {
+        setRequests([]);
+        setOffers({});
+        return;
+      }
+
+      const srMap = {};
+      await Promise.all(
+        srIds.map(async (srId) => {
+          try {
+            const srRes = await getServiceRequestById(srId);
+            srMap[srId] = normalizeServiceRequest(srRes);
+          } catch (err) {
+            srMap[srId] = null;
+          }
+        })
+      );
+
+      const offerIds = [
+        ...new Set(
+          Object.values(srMap)
+            .filter(Boolean)
+            .map((sr) => sr.offerId)
+            .filter(Boolean)
+        ),
+      ];
       const offerMap = {};
       await Promise.all(
         offerIds.map(async (offerId) => {
@@ -90,9 +139,24 @@ const ServiceRequestsPage = () => {
           }
         })
       );
-
       setOffers(offerMap);
-      setRequests(normalized);
+
+      const rows = srIds
+        .map((srId) => {
+          const sr = srMap[srId];
+          if (!sr) return null;
+          const relatedPrivateOffers = privateOffers.filter((item) => item.serviceRequestId === srId);
+          const relatedProposals = proposals.filter((item) => item.serviceRequestId === srId);
+          return {
+            ...sr,
+            offer: sr.offerId ? offerMap[sr.offerId] : null,
+            privateOffer: relatedPrivateOffers[0] || null,
+            proposal: relatedProposals[0] || null,
+          };
+        })
+        .filter(Boolean);
+
+      setRequests(rows);
     } catch (err) {
       const msg =
         err?.response?.data?.detail ||
@@ -100,6 +164,7 @@ const ServiceRequestsPage = () => {
         "Could not load service requests for this provider.";
       setError(msg);
       setRequests([]);
+      setOffers({});
     } finally {
       setLoading(false);
     }
@@ -110,7 +175,7 @@ const ServiceRequestsPage = () => {
   }, []);
 
   const rows = useMemo(
-    () => requests.map((item) => ({ ...item, offer: item.offerId ? offers[item.offerId] : null })),
+    () => requests.map((item) => ({ ...item, offer: item.offerId ? offers[item.offerId] : item.offer })),
     [requests, offers]
   );
 
@@ -138,9 +203,7 @@ const ServiceRequestsPage = () => {
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
       <div className="space-y-1">
         <h1 className="text-3xl font-bold text-slate-900">Service Requests</h1>
-        <p className="text-sm text-slate-600">
-          Review buyer requests and start your private offers.
-        </p>
+        <p className="text-sm text-slate-600">Review buyer requests linked to your private offers and proposals.</p>
       </div>
 
       <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
@@ -168,7 +231,7 @@ const ServiceRequestsPage = () => {
         <div className="px-4 py-4">
           <h2 className="text-lg font-semibold text-slate-900">Visible to you</h2>
           <p className="text-sm text-slate-600">
-            These requests come from buyers. Open one to review details and take action.
+            These requests come from buyers and are tied to your offers, proposals, or private offers.
           </p>
         </div>
 
@@ -213,7 +276,7 @@ const ServiceRequestsPage = () => {
           <div className="border-t border-dashed border-slate-200 px-6 py-10 text-center">
             <p className="text-lg font-semibold text-slate-900 mb-2">No service requests yet.</p>
             <p className="text-sm text-slate-600">
-              Once buyers send requests, you&apos;ll see them here.
+              Once your private offers or proposals relate to buyer requests, they will show up here.
             </p>
           </div>
         ) : (
@@ -245,9 +308,7 @@ const ServiceRequestsPage = () => {
                         <div className="flex flex-col">
                           <span className="font-semibold">{offerLabel}</span>
                           {req.offer?.port_of_loading && (
-                            <span className="text-xs text-slate-500">
-                              Port: {req.offer.port_of_loading}
-                            </span>
+                            <span className="text-xs text-slate-500">Port: {req.offer.port_of_loading}</span>
                           )}
                         </div>
                       </td>
