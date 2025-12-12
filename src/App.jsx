@@ -106,7 +106,7 @@ export default function App() {
         }
       />
       <Route
-        path="/provider/service-requests/:id"
+        path="/provider/service-requests/:serviceRequestId"
         element={
           <RequireAuth allowedRoles={["PROVIDER"]}>
             <ProviderLayout>
