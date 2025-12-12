@@ -18,6 +18,8 @@ import ProviderLayout from "./components/layout/ProviderLayout";
 import SellerShell from "./components/layout/SellerShell";
 import AdminOffersPage from "./pages/admin/AdminOffersPage";
 import AdminOfferDetailPage from "./pages/admin/AdminOfferDetailPage";
+import ServiceRequestsPage from "./pages/provider/ServiceRequestsPage";
+import ServiceRequestDetailPage from "./pages/provider/ServiceRequestDetailPage";
 
 export default function App() {
   const { initAuth } = useAuth();
@@ -89,6 +91,26 @@ export default function App() {
           <RequireAuth allowedRoles={["PROVIDER"]}>
             <ProviderLayout>
               <ProviderHome />
+            </ProviderLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/provider/service-requests"
+        element={
+          <RequireAuth allowedRoles={["PROVIDER"]}>
+            <ProviderLayout>
+              <ServiceRequestsPage />
+            </ProviderLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/provider/service-requests/:serviceRequestId"
+        element={
+          <RequireAuth allowedRoles={["PROVIDER"]}>
+            <ProviderLayout>
+              <ServiceRequestDetailPage />
             </ProviderLayout>
           </RequireAuth>
         }
