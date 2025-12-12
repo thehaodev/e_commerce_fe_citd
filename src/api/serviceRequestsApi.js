@@ -14,6 +14,11 @@ export const getMyServiceRequests = async () => {
   return unwrap(res);
 };
 
+export const createServiceRequest = async (offerId, payload) => {
+  const res = await httpClient.post(`/service-request/${offerId}`, payload);
+  return unwrap(res);
+};
+
 export const getServiceRequestById = async (serviceRequestId) => {
   const res = await httpClient.get(`/service-request/${serviceRequestId}`);
   return unwrap(res);

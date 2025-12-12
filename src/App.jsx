@@ -5,6 +5,10 @@ import RegisterPage from "./pages/auth/RegisterPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import BuyerHomePage from "./pages/buyer/BuyerHomePage";
+import BuyerOfferDetailPage from "./pages/buyer/BuyerOfferDetailPage";
+import BuyerServiceRequestCreatePage from "./pages/buyer/BuyerServiceRequestCreatePage";
+import BuyerServiceRequestDetailPage from "./pages/buyer/BuyerServiceRequestDetailPage";
+import BuyerServiceRequestListPage from "./pages/buyer/BuyerServiceRequestListPage";
 import SellerHome from "./pages/seller/SellerHome";
 import CreateOfferPage from "./pages/seller/CreateOfferPage";
 import MyOffersPage from "./pages/seller/MyOffersPage";
@@ -46,6 +50,46 @@ export default function App() {
           <RequireAuth allowedRoles={["BUYER"]}>
             <BuyerLayout>
               <BuyerHomePage />
+            </BuyerLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/buyer/offers/:offerId"
+        element={
+          <RequireAuth allowedRoles={["BUYER"]}>
+            <BuyerLayout>
+              <BuyerOfferDetailPage />
+            </BuyerLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/buyer/service-requests"
+        element={
+          <RequireAuth allowedRoles={["BUYER"]}>
+            <BuyerLayout>
+              <BuyerServiceRequestListPage />
+            </BuyerLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/buyer/service-requests/new"
+        element={
+          <RequireAuth allowedRoles={["BUYER"]}>
+            <BuyerLayout>
+              <BuyerServiceRequestCreatePage />
+            </BuyerLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/buyer/service-requests/:serviceRequestId"
+        element={
+          <RequireAuth allowedRoles={["BUYER"]}>
+            <BuyerLayout>
+              <BuyerServiceRequestDetailPage />
             </BuyerLayout>
           </RequireAuth>
         }
