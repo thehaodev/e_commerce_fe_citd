@@ -48,8 +48,9 @@ const SkeletonRow = () => (
  * @param {boolean} props.isLoading
  * @param {string | null} props.error
  * @param {PrivateOffer[]} props.privateOffers
+ * @param {() => void} [props.onRetry]
  */
-const PrivateOffersPanel = ({ isLoading, error, privateOffers }) => {
+const PrivateOffersPanel = ({ isLoading, error, privateOffers, onRetry }) => {
   const navigate = useNavigate();
 
   return (
@@ -78,7 +79,7 @@ const PrivateOffersPanel = ({ isLoading, error, privateOffers }) => {
           <button
             type="button"
             className="text-sm font-semibold text-rose-800 underline"
-            onClick={() => navigate(0)}
+            onClick={() => (onRetry ? onRetry() : navigate(0))}
           >
             Retry
           </button>
