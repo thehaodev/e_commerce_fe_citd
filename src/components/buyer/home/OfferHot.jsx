@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+
 const formatDate = (value) => {
   if (!value) return null;
   const date = new Date(value);
@@ -13,6 +15,8 @@ const OfferHot = ({
   submittingOfferId = null,
   onExpressInterest,
 }) => {
+  const navigate = useNavigate();
+
   const renderSkeleton = () => (
     <div className="-mx-2 flex gap-4 overflow-x-auto pb-2">
       {[1, 2, 3].map((idx) => (
@@ -85,19 +89,28 @@ const OfferHot = ({
                 <div className="relative mt-3 text-xs font-semibold text-amber-900/70">
                   {dateLabel ? `Posted ${dateLabel}` : "Recently added"}
                 </div>
-                <button
-                  type="button"
-                  disabled={isInterested || isSubmitting}
-                  onClick={() => {
-                    if (isInterested || isSubmitting || !offer?.id) return;
-                    onExpressInterest?.(offer.id);
-                  }}
-                  className={`relative mt-4 inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-semibold text-amber-700 transition hover:translate-x-1 hover:-translate-y-px hover:shadow ${
-                    isInterested || isSubmitting ? "cursor-not-allowed opacity-70" : ""
-                  }`}
-                >
-                  {buttonLabel}
-                </button>
+                <div className="relative mt-4 flex flex-col gap-2 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={() => offer?.id && navigate(`/buyer/offers/${offer.id}`)}
+                    className="inline-flex items-center justify-center rounded-xl border border-white/60 bg-white/80 px-4 py-2 text-sm font-semibold text-amber-800 transition hover:-translate-y-px hover:bg-white"
+                  >
+                    View details
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isInterested || isSubmitting}
+                    onClick={() => {
+                      if (isInterested || isSubmitting || !offer?.id) return;
+                      onExpressInterest?.(offer.id);
+                    }}
+                    className={`relative inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-semibold text-amber-700 transition hover:translate-x-1 hover:-translate-y-px hover:shadow ${
+                      isInterested || isSubmitting ? "cursor-not-allowed opacity-70" : ""
+                    }`}
+                  >
+                    {buttonLabel}
+                  </button>
+                </div>
               </div>
             );
           })}
