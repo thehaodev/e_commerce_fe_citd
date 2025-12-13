@@ -22,7 +22,7 @@ import ProviderLayout from "./components/layout/ProviderLayout";
 import SellerShell from "./components/layout/SellerShell";
 import AdminOffersPage from "./pages/admin/AdminOffersPage";
 import AdminOfferDetailPage from "./pages/admin/AdminOfferDetailPage";
-import ServiceRequestsPage from "./pages/provider/ServiceRequestsPage";
+import ProviderServiceRequestsPage from "./pages/provider/ServiceRequestsPage";
 import ServiceRequestDetailPage from "./pages/provider/ServiceRequestDetailPage";
 import ProviderPrivateOffersPage from "./pages/provider/ProviderPrivateOffersPage";
 import ProviderCreatePrivateOfferPage from "./pages/provider/ProviderCreatePrivateOfferPage";
@@ -157,7 +157,7 @@ export default function App() {
         element={
           <RequireAuth allowedRoles={["PROVIDER"]}>
             <ProviderLayout>
-              <ServiceRequestsPage />
+              <ProviderServiceRequestsPage />
             </ProviderLayout>
           </RequireAuth>
         }

@@ -1,47 +1,41 @@
 import React from "react";
 
 const Badge = ({ children }) => (
-  <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">
+  <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">
     {children}
   </span>
 );
 
-const SkeletonRow = () => (
-  <tr className="animate-pulse">
-    <td className="py-3 px-3">
-      <div className="h-4 bg-slate-200 rounded w-28" />
-    </td>
-    <td className="py-3 px-3">
-      <div className="h-4 bg-slate-200 rounded w-24" />
-    </td>
-    <td className="py-3 px-3">
-      <div className="h-4 bg-slate-200 rounded w-16" />
-    </td>
-    <td className="py-3 px-3">
-      <div className="h-4 bg-slate-200 rounded w-28" />
-    </td>
-    <td className="py-3 px-3">
-      <div className="h-4 bg-slate-200 rounded w-24" />
-    </td>
-    <td className="py-3 px-3">
-      <div className="h-4 bg-slate-200 rounded w-20" />
-    </td>
-    <td className="py-3 px-3">
-      <div className="h-9 bg-slate-200 rounded" />
-    </td>
-  </tr>
+const formatDate = (value) => {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString();
+};
+
+const SkeletonCard = () => (
+  <div className="animate-pulse rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+    <div className="flex items-center justify-between gap-3">
+      <div className="space-y-2">
+        <div className="h-4 w-40 rounded bg-slate-200" />
+        <div className="h-3 w-64 rounded bg-slate-200" />
+      </div>
+      <div className="h-6 w-24 rounded-full bg-slate-200" />
+    </div>
+    <div className="mt-3 h-9 w-full rounded-lg bg-slate-200" />
+  </div>
 );
 
 /**
  * @typedef {Object} ServiceRequest
  * @property {string} id
+ * @property {string} offerId
  * @property {string} offerProductName
  * @property {string} [buyerName]
  * @property {"CFR" | "CIF" | "DAP" | "DDP"} incotermBuyer
  * @property {string} destination
  * @property {string} createdAt
  * @property {string} status
- * @property {boolean} [hasPrivateOffer]
  */
 
 /**
@@ -51,8 +45,8 @@ const SkeletonRow = () => (
  * @param {ServiceRequest[]} props.serviceRequests
  * @param {() => void} [props.onRetry]
  * @param {(id: string) => void} [props.onOpenDetail]
- * @param {(id: string) => void} [props.onCreatePrivateOffer]
- * @param {(privateOfferId: string) => void} [props.onOpenPrivateOffer]
+ * @param {(id: string, offerId: string) => void} [props.onCreatePrivateOffer]
+ * @param {() => void} [props.onBrowseOffers]
  */
 const IncomingServiceRequestsPanel = ({
   isLoading,
@@ -61,17 +55,17 @@ const IncomingServiceRequestsPanel = ({
   onRetry,
   onOpenDetail,
   onCreatePrivateOffer,
-  onOpenPrivateOffer,
+  onBrowseOffers,
 }) => {
+  const list = serviceRequests?.slice(0, 5) || [];
+
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
       <div className="flex items-center justify-between gap-4 mb-4">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">
-            Incoming Service Requests
-          </h2>
+          <h2 className="text-lg font-semibold text-slate-900">Incoming Service Requests</h2>
           <p className="text-sm text-slate-500">
-            Requests from buyers that need your private offers.
+            Recent requests from active offers. Create a private offer to respond.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -87,7 +81,7 @@ const IncomingServiceRequestsPanel = ({
 
       {error && (
         <div className="mb-4 flex items-start justify-between gap-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-700">
-          <span className="text-sm">{error}</span>
+          <span className="text-sm">{error || "Could not load service requests."}</span>
           {onRetry && (
             <button
               type="button"
@@ -101,98 +95,57 @@ const IncomingServiceRequestsPanel = ({
       )}
 
       {isLoading ? (
-        <div className="overflow-hidden rounded-xl border border-slate-100">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-600 uppercase tracking-wide text-xs">
-              <tr>
-                <th className="text-left px-3 py-3">Offer</th>
-                <th className="text-left px-3 py-3">Buyer</th>
-                <th className="text-left px-3 py-3">Incoterm</th>
-                <th className="text-left px-3 py-3">Destination</th>
-                <th className="text-left px-3 py-3">Requested</th>
-                <th className="text-left px-3 py-3">Status</th>
-                <th className="text-left px-3 py-3">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {[...Array(4)].map((_, idx) => (
-                <SkeletonRow key={idx} />
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, idx) => (
+            <SkeletonCard key={idx} />
+          ))}
         </div>
-      ) : serviceRequests?.length ? (
-        <div className="overflow-hidden rounded-xl border border-slate-100">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-600 uppercase tracking-wide text-xs">
-              <tr>
-                <th className="text-left px-3 py-3">Offer</th>
-                <th className="text-left px-3 py-3">Buyer</th>
-                <th className="text-left px-3 py-3">Incoterm</th>
-                <th className="text-left px-3 py-3">Destination</th>
-                <th className="text-left px-3 py-3">Requested</th>
-                <th className="text-left px-3 py-3">Status</th>
-                <th className="text-left px-3 py-3">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {serviceRequests.map((request) => (
-                <tr
-                  key={request.id}
-                  className="hover:bg-slate-50 transition-colors"
+      ) : list.length ? (
+        <div className="space-y-3">
+          {list.map((request) => (
+            <div
+              key={request.id}
+              className="rounded-xl border border-slate-100 bg-slate-50/60 p-4 hover:border-emerald-200 hover:bg-emerald-50/40 transition"
+            >
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1">
+                  <div className="text-sm font-semibold text-slate-900">
+                    {request.offerProductName || "Offer"}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                    <Badge>{request.incotermBuyer || "N/A"}</Badge>
+                    <span className="text-slate-500">to {request.destination}</span>
+                  </div>
+                </div>
+                <div className="text-xs text-slate-500">Created {formatDate(request.createdAt)}</div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold text-sm shadow-sm"
+                  onClick={() => onCreatePrivateOffer?.(request.id, request.offerId)}
                 >
-                  <td className="px-3 py-3 text-slate-900 font-medium">
-                    {request.offerProductName}
-                  </td>
-                  <td className="px-3 py-3 text-slate-600">
-                    {request.buyerName || "Buyer"}
-                  </td>
-                  <td className="px-3 py-3">
-                    <Badge>{request.incotermBuyer}</Badge>
-                  </td>
-                  <td className="px-3 py-3 text-slate-700">
-                    {request.destination}
-                  </td>
-                  <td className="px-3 py-3 text-slate-600">
-                    {new Date(request.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-3 py-3">
-                    <Badge>{request.status}</Badge>
-                  </td>
-                  <td className="px-3 py-3">
-                    {request.hasPrivateOffer ? (
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <button
-                          type="button"
-                          className="px-4 py-2 rounded-full border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 text-sm font-semibold"
-                          onClick={() =>
-                            request.privateOfferId && onOpenPrivateOffer?.(request.privateOfferId)
-                          }
-                        >
-                          View Private Offer
-                        </button>
-                        <button
-                          type="button"
-                          className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold text-sm shadow-sm"
-                          onClick={() => onOpenDetail?.(request.id)}
-                        >
-                          View Request
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold text-sm shadow-sm"
-                        onClick={() => onCreatePrivateOffer?.(request.id)}
-                      >
-                        Create Private Offer
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  Create Private Offer
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-full border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 text-sm font-semibold"
+                  onClick={() => onOpenDetail?.(request.id)}
+                >
+                  View details
+                </button>
+              </div>
+            </div>
+          ))}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              className="text-sm font-semibold text-emerald-700 hover:text-emerald-800"
+              onClick={() => onRetry?.()}
+            >
+              Refresh list
+            </button>
+          </div>
         </div>
       ) : (
         <div className="border border-dashed border-slate-200 rounded-2xl p-8 text-center">
@@ -205,6 +158,7 @@ const IncomingServiceRequestsPanel = ({
           <button
             type="button"
             className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold text-sm shadow-sm"
+            onClick={onBrowseOffers}
           >
             Browse Active Offers
           </button>

@@ -43,7 +43,7 @@ const StatusBadge = ({ value }) => (
 
 const SkeletonRow = () => (
   <tr className="animate-pulse">
-    {Array.from({ length: 6 }).map((_, idx) => (
+    {Array.from({ length: 7 }).map((_, idx) => (
       <td key={idx} className="px-3 py-3">
         <div className="h-4 w-28 rounded bg-slate-200" />
       </td>
@@ -221,6 +221,7 @@ const ProviderPrivateOffersPage = () => {
                   <th className="px-3 py-3 text-left">Price</th>
                   <th className="px-3 py-3 text-left">Dates</th>
                   <th className="px-3 py-3 text-left">Status</th>
+                  <th className="px-3 py-3 text-left">Created</th>
                   <th className="px-3 py-3 text-left">Action</th>
                 </tr>
               </thead>
@@ -273,6 +274,7 @@ const ProviderPrivateOffersPage = () => {
                   <th className="px-3 py-3 text-left">Price</th>
                   <th className="px-3 py-3 text-left">Dates</th>
                   <th className="px-3 py-3 text-left">Status</th>
+                  <th className="px-3 py-3 text-left">Created</th>
                   <th className="px-3 py-3 text-left">Action</th>
                 </tr>
               </thead>
@@ -286,6 +288,7 @@ const ProviderPrivateOffersPage = () => {
                     item.serviceRequest?.contactEmail ||
                     "";
                   const dates = [item.updatedCrd, item.updatedEtd].filter(Boolean).join(" / ");
+                  const created = formatDate(item.createdAt);
 
                   return (
                     <tr
@@ -323,6 +326,7 @@ const ProviderPrivateOffersPage = () => {
                       <td className="px-3 py-3">
                         <StatusBadge value={item.status} />
                       </td>
+                      <td className="px-3 py-3 text-slate-600">{created}</td>
                       <td className="px-3 py-3">
                         <button
                           type="button"

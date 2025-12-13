@@ -7,7 +7,7 @@ import ProposalsPanel from "../../components/provider/ProposalsPanel";
 import { fetchMyPrivateOffers } from "../../api/privateOffersApi";
 import { getMyProposals } from "../../api/proposalsApi";
 import { getServiceRequestById } from "../../api/serviceRequestsApi";
-import { getOfferById } from "../../api/offerApi";
+import useProviderServiceRequests from "../../hooks/useProviderServiceRequests";
 
 const normalizePrivateOffer = (item) => ({
   id: item?.id || "",
@@ -61,36 +61,25 @@ const normalizeServiceRequest = (item) => ({
   updatedAt: item?.updated_at || "",
 });
 
-const destinationFor = (request) => {
-  const incoterm = (request?.incotermBuyer || "").toUpperCase();
-  if (incoterm === "CFR" || incoterm === "CIF") {
-    return request?.portOfDischarge || request?.countryCode || "Destination not provided";
-  }
-  return (
-    request?.warehouseAddress ||
-    request?.warehouseCode ||
-    request?.countryCode ||
-    "Destination not provided"
-  );
-};
-
 export default function ProviderHome() {
   const navigate = useNavigate();
   const [privateOffers, setPrivateOffers] = useState([]);
   const [proposals, setProposals] = useState([]);
-  const [serviceRequests, setServiceRequests] = useState([]);
+  const [serviceRequestMap, setServiceRequestMap] = useState({});
 
   const [isLoadingPrivateOffers, setIsLoadingPrivateOffers] = useState(true);
   const [isLoadingProposals, setIsLoadingProposals] = useState(true);
-  const [isLoadingServiceRequests, setIsLoadingServiceRequests] = useState(true);
-
   const [errorPrivateOffers, setErrorPrivateOffers] = useState(null);
   const [errorProposals, setErrorProposals] = useState(null);
-  const [errorServiceRequests, setErrorServiceRequests] = useState(null);
 
-  const fetchServiceRequests = async (privateOfferList, proposalList) => {
-    setIsLoadingServiceRequests(true);
-    setErrorServiceRequests(null);
+  const {
+    requests: incomingRequests,
+    isLoading: isLoadingIncomingRequests,
+    error: errorIncomingRequests,
+    refresh: refreshIncomingRequests,
+  } = useProviderServiceRequests({ offerLimit: 10 });
+
+  const hydrateServiceRequestMap = async (privateOfferList, proposalList) => {
     try {
       const srIds = [
         ...new Set(
@@ -99,76 +88,25 @@ export default function ProviderHome() {
             .filter(Boolean)
         ),
       ];
-
       if (srIds.length === 0) {
-        setServiceRequests([]);
+        setServiceRequestMap({});
         return;
       }
-
       const srMap = {};
       await Promise.all(
         srIds.map(async (srId) => {
           try {
             const srRes = await getServiceRequestById(srId);
-            srMap[srId] = normalizeServiceRequest(srRes);
+            const payload = srRes?.data ?? srRes;
+            srMap[srId] = normalizeServiceRequest(payload);
           } catch (err) {
             srMap[srId] = null;
           }
         })
       );
-
-      const offerIds = [
-        ...new Set(
-          Object.values(srMap)
-            .filter(Boolean)
-            .map((sr) => sr.offerId)
-            .filter(Boolean)
-        ),
-      ];
-      const offerMap = {};
-      await Promise.all(
-        offerIds.map(async (offerId) => {
-          try {
-            const offerRes = await getOfferById(offerId);
-            offerMap[offerId] = offerRes?.data ?? offerRes;
-          } catch (err) {
-            offerMap[offerId] = null;
-          }
-        })
-      );
-
-      const rows = srIds
-        .map((srId) => {
-          const sr = srMap[srId];
-          if (!sr) return null;
-          const relatedPrivateOffers = privateOfferList.filter((item) => item.serviceRequestId === srId);
-          const relatedProposals = proposalList.filter((item) => item.serviceRequestId === srId);
-          const offer = sr.offerId ? offerMap[sr.offerId] : null;
-          const offerLabel = offer?.product_name || sr.offerId || "Offer";
-          const buyerLabel = sr.contactName || sr.contactEmail || sr.buyerId || "Buyer";
-          return {
-            ...sr,
-            offer,
-            offerLabel,
-            buyerLabel,
-            destination: destinationFor(sr),
-            hasPrivateOffer: relatedPrivateOffers.length > 0,
-            privateOfferId: relatedPrivateOffers[0]?.id || null,
-            proposalId: relatedProposals[0]?.id || null,
-          };
-        })
-        .filter(Boolean);
-
-      setServiceRequests(rows);
+      setServiceRequestMap(srMap);
     } catch (err) {
-      const msg =
-        err?.response?.data?.detail ||
-        err?.message ||
-        "Could not load service requests for your workspace.";
-      setErrorServiceRequests(msg);
-      setServiceRequests([]);
-    } finally {
-      setIsLoadingServiceRequests(false);
+      setServiceRequestMap({});
     }
   };
 
@@ -187,15 +125,14 @@ export default function ProviderHome() {
       const normalizedProposals = proposalList.map(normalizeProposal);
       setPrivateOffers(privateOfferList);
       setProposals(proposalList);
-      fetchServiceRequests(normalizedPrivateOffers, normalizedProposals);
+      await hydrateServiceRequestMap(normalizedPrivateOffers, normalizedProposals);
     } catch (err) {
       const message = err?.message || "Unable to load provider data right now.";
       setErrorPrivateOffers(message);
       setErrorProposals(message);
       setPrivateOffers([]);
       setProposals([]);
-      setServiceRequests([]);
-      setIsLoadingServiceRequests(false);
+      setServiceRequestMap({});
     } finally {
       setIsLoadingPrivateOffers(false);
       setIsLoadingProposals(false);
@@ -222,25 +159,30 @@ export default function ProviderHome() {
     };
   }, [privateOffers, proposals]);
 
-  const serviceRequestMap = useMemo(() => {
-    const map = {};
-    serviceRequests.forEach((sr) => {
-      map[sr.id] = sr;
+  const combinedServiceRequestMap = useMemo(() => {
+    const map = { ...serviceRequestMap };
+    incomingRequests.forEach((sr) => {
+      if (sr?.id && !map[sr.id]) {
+        map[sr.id] = sr;
+      }
     });
     return map;
-  }, [serviceRequests]);
+  }, [incomingRequests, serviceRequestMap]);
 
-  const panelRequests = serviceRequests.map((sr) => ({
-    id: sr.id,
-    offerProductName: sr.offerLabel,
-    buyerName: sr.buyerLabel,
-    incotermBuyer: (sr.incotermBuyer || "").toUpperCase(),
-    destination: sr.destination,
-    createdAt: sr.createdAt,
-    status: sr.status,
-    hasPrivateOffer: sr.hasPrivateOffer,
-    privateOfferId: sr.privateOfferId,
-  }));
+  const panelRequests = useMemo(
+    () =>
+      incomingRequests.slice(0, 5).map((sr) => ({
+        id: sr.id,
+        offerId: sr.offerId,
+        offerProductName: sr.offerProductName || sr.offerCode || sr.offerId,
+        buyerName: sr.contactName || sr.contactEmail || sr.buyerId || "Buyer",
+        incotermBuyer: (sr.incotermBuyer || "").toUpperCase(),
+        destination: sr.destination,
+        createdAt: sr.createdAt,
+        status: sr.status,
+      })),
+    [incomingRequests]
+  );
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -258,7 +200,7 @@ export default function ProviderHome() {
           totalProposals={stats.totalProposals}
           awardedProposals={stats.awardedProposals}
           rejectedOrExpiredProposals={stats.rejectedOrExpiredProposals}
-          openServiceRequests={serviceRequests.length}
+          openServiceRequests={incomingRequests.length}
         />
 
         <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
@@ -290,18 +232,17 @@ export default function ProviderHome() {
         </section>
 
         <IncomingServiceRequestsPanel
-          isLoading={isLoadingServiceRequests}
-          error={errorServiceRequests}
+          isLoading={isLoadingIncomingRequests}
+          error={errorIncomingRequests}
           serviceRequests={panelRequests}
-          onRetry={fetchAll}
+          onRetry={refreshIncomingRequests}
           onOpenDetail={(srId) => srId && navigate(`/provider/service-requests/${srId}`)}
-          onCreatePrivateOffer={(srId) => {
-            const sr = serviceRequestMap[srId];
-            if (sr?.id && sr?.offerId) {
-              navigate(`/provider/private-offers/new?serviceRequestId=${sr.id}&offerId=${sr.offerId}`);
+          onCreatePrivateOffer={(srId, offerId) => {
+            if (srId && offerId) {
+              navigate(`/provider/private-offers/new?serviceRequestId=${srId}&offerId=${offerId}`);
             }
           }}
-          onOpenPrivateOffer={(poId) => poId && navigate(`/provider/private-offers/${poId}`)}
+          onBrowseOffers={() => navigate("/provider/service-requests")}
         />
 
         <PrivateOffersPanel
@@ -315,7 +256,7 @@ export default function ProviderHome() {
           isLoading={isLoadingProposals}
           error={errorProposals}
           proposals={proposals}
-          serviceRequestMap={serviceRequestMap}
+          serviceRequestMap={combinedServiceRequestMap}
         />
       </div>
     </div>

@@ -24,7 +24,10 @@ export const getServiceRequestById = async (serviceRequestId) => {
   return unwrap(res);
 };
 
-export const getServiceRequestsByOffer = async (offerId) => {
+export const getRequestsByOffer = async (offerId) => {
   const res = await httpClient.get(`/service-request/offer/${offerId}`);
   return unwrap(res);
 };
+
+// Backwards-compatible alias
+export const getServiceRequestsByOffer = getRequestsByOffer;
