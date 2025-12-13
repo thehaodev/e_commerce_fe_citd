@@ -787,6 +787,71 @@
         }
       }
     },
+    "/service-request/available": {
+      "get": {
+        "tags": [
+          "service-request"
+        ],
+        "summary": "Get Available Service Requests For Provider",
+        "operationId": "get_available_service_requests_for_provider_service_request_available_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServiceRequestResponse"
+                  },
+                  "title": "Response Get Available Service Requests For Provider Service Request Available Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/private-offer/{offer_id}/service-request/{service_request_id}": {
       "post": {
         "tags": [

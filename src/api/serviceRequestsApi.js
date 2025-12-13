@@ -29,5 +29,17 @@ export const getRequestsByOffer = async (offerId) => {
   return unwrap(res);
 };
 
+/**
+ * Provider-facing list of available service requests.
+ * Defaults to limit=50 and offset=0.
+ */
+export const getAvailableServiceRequests = async (params = {}) => {
+  const { limit = 50, offset = 0 } = params;
+  const res = await httpClient.get("/service-request/available", {
+    params: { limit, offset },
+  });
+  return unwrap(res);
+};
+
 // Backwards-compatible alias
 export const getServiceRequestsByOffer = getRequestsByOffer;
