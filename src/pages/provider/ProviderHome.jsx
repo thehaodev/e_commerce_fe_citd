@@ -7,7 +7,7 @@ import ProposalsPanel from "../../components/provider/ProposalsPanel";
 import { fetchMyPrivateOffers } from "../../api/privateOffersApi";
 import { getMyProposals } from "../../api/proposalsApi";
 import { getServiceRequestById } from "../../api/serviceRequestsApi";
-import useProviderServiceRequests from "../../hooks/useProviderServiceRequests";
+import useProviderIncomingServiceRequests from "../../hooks/useProviderIncomingServiceRequests";
 
 const normalizePrivateOffer = (item) => ({
   id: item?.id || "",
@@ -73,11 +73,11 @@ export default function ProviderHome() {
   const [errorProposals, setErrorProposals] = useState(null);
 
   const {
-    requests: incomingRequests,
+    rows: incomingRequests,
     isLoading: isLoadingIncomingRequests,
     error: errorIncomingRequests,
-    refresh: refreshIncomingRequests,
-  } = useProviderServiceRequests({ offerLimit: 10 });
+    refetch: refreshIncomingRequests,
+  } = useProviderIncomingServiceRequests({ offerEnrichmentLimit: 10 });
 
   const hydrateServiceRequestMap = async (privateOfferList, proposalList) => {
     try {
@@ -178,11 +178,30 @@ export default function ProviderHome() {
         buyerName: sr.contactName || sr.contactEmail || sr.buyerId || "Buyer",
         incotermBuyer: (sr.incotermBuyer || "").toUpperCase(),
         destination: sr.destination,
-        createdAt: sr.createdAt,
-        status: sr.status,
+        createdAt: sr.createdDate,
+        status: sr.status || sr.serviceRequest?.status,
+        serviceRequest: sr.serviceRequest,
+        offer: sr.offer,
       })),
     [incomingRequests]
   );
+
+  const handleOpenServiceRequest = (srId) => {
+    if (!srId) return;
+    const match = incomingRequests.find((item) => `${item.id}` === `${srId}`);
+    navigate(`/provider/service-requests/${srId}`, {
+      state: { serviceRequest: match?.serviceRequest, offer: match?.offer },
+    });
+  };
+
+  const handleCreatePrivateOffer = (srId, offerId) => {
+    if (srId && offerId) {
+      const match = incomingRequests.find((item) => `${item.id}` === `${srId}`);
+      navigate(`/provider/private-offers/new?serviceRequestId=${srId}&offerId=${offerId}`, {
+        state: { serviceRequest: match?.serviceRequest, offer: match?.offer },
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -236,12 +255,8 @@ export default function ProviderHome() {
           error={errorIncomingRequests}
           serviceRequests={panelRequests}
           onRetry={refreshIncomingRequests}
-          onOpenDetail={(srId) => srId && navigate(`/provider/service-requests/${srId}`)}
-          onCreatePrivateOffer={(srId, offerId) => {
-            if (srId && offerId) {
-              navigate(`/provider/private-offers/new?serviceRequestId=${srId}&offerId=${offerId}`);
-            }
-          }}
+          onOpenDetail={handleOpenServiceRequest}
+          onCreatePrivateOffer={handleCreatePrivateOffer}
           onBrowseOffers={() => navigate("/provider/service-requests")}
         />
 

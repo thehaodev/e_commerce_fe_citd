@@ -7,7 +7,7 @@ const Badge = ({ children }) => (
 );
 
 const formatDate = (value) => {
-  if (!value) return "—";
+  if (!value) return "Not provided";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
   return d.toLocaleDateString();
