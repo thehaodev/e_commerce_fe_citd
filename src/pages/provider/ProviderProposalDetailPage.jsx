@@ -2,9 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { FiAlertCircle, FiArrowLeft, FiClock, FiRefreshCw, FiTag } from "react-icons/fi";
 import { getProposalById, withdrawProposal } from "../../api/proposalsApi";
-import { getServiceRequestById } from "../../api/serviceRequestsApi";
 import { getOfferById } from "../../api/offerApi";
-import { getPrivateOfferById } from "../../api/privateOffersApi";
+import { privateOfferApi } from "../../api/privateOffersApi";
+import {
+  destinationForServiceRequest,
+  fetchProviderServiceRequestById,
+} from "../../utils/providerServiceRequestUtils";
 
 const normalizeProposal = (item) => ({
   id: item?.id || "",
@@ -24,38 +27,11 @@ const normalizeProposal = (item) => ({
   updatedAt: item?.updated_at || "",
 });
 
-const normalizeServiceRequest = (item) => ({
-  id: item?.id || "",
-  offerId: item?.offer_id || "",
-  incotermBuyer: item?.incoterm_buyer || "",
-  portOfDischarge: item?.port_of_discharge || "",
-  warehouseAddress: item?.warehouse_address || "",
-  warehouseCode: item?.warehouse_code || "",
-  countryCode: item?.country_code || "",
-  status: item?.status || "",
-  contactName: item?.contact_name || "",
-  contactEmail: item?.contact_email || "",
-  createdAt: item?.created_at || "",
-});
-
 const formatDate = (value) => {
   if (!value) return "Not provided";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
   return d.toLocaleDateString();
-};
-
-const destinationFor = (request) => {
-  const incoterm = (request?.incotermBuyer || "").toUpperCase();
-  if (incoterm === "CFR" || incoterm === "CIF") {
-    return request?.portOfDischarge || request?.countryCode || "Destination not provided";
-  }
-  return (
-    request?.warehouseAddress ||
-    request?.warehouseCode ||
-    request?.countryCode ||
-    "Destination not provided"
-  );
 };
 
 const InfoRow = ({ label, value }) => (
@@ -93,9 +69,17 @@ const ProviderProposalDetailPage = () => {
 
       if (normalized.serviceRequestId) {
         try {
-          const srRes = await getServiceRequestById(normalized.serviceRequestId);
-          setServiceRequest(normalizeServiceRequest(srRes?.data ?? srRes));
+          const sr = await fetchProviderServiceRequestById({
+            serviceRequestId: normalized.serviceRequestId,
+            offerId: normalized.offerId,
+            limit: 200,
+            offset: 0,
+          });
+          setServiceRequest(sr);
         } catch (err) {
+          if (!error && (err?.response?.status === 401 || err?.response?.status === 403)) {
+            setError("You are not allowed");
+          }
           setServiceRequest(null);
         }
       }
@@ -111,7 +95,7 @@ const ProviderProposalDetailPage = () => {
 
       if (normalized.privateOfferId) {
         try {
-          const poRes = await getPrivateOfferById(normalized.privateOfferId);
+          const poRes = await privateOfferApi.getPrivateOfferById(normalized.privateOfferId);
           setPrivateOffer(poRes?.data ?? poRes);
         } catch (err) {
           setPrivateOffer(null);
@@ -119,9 +103,11 @@ const ProviderProposalDetailPage = () => {
       }
     } catch (err) {
       const msg =
-        err?.response?.data?.detail ||
-        err?.message ||
-        "Proposal not found or you are not allowed to view it.";
+        err?.response?.status === 401 || err?.response?.status === 403
+          ? "You are not allowed"
+          : err?.response?.data?.detail ||
+            err?.message ||
+            "Proposal not found or you are not allowed to view it.";
       setError(msg);
       setProposal(null);
       setServiceRequest(null);
@@ -285,7 +271,10 @@ const ProviderProposalDetailPage = () => {
                         label="Buyer Incoterm"
                         value={(serviceRequest?.incotermBuyer || "").toString().toUpperCase()}
                       />
-                      <InfoRow label="Destination" value={destinationFor(serviceRequest)} />
+                      <InfoRow
+                        label="Destination"
+                        value={destinationForServiceRequest(serviceRequest)}
+                      />
                       <InfoRow label="Status" value={serviceRequest?.status || "REQUESTED"} />
                       <InfoRow label="Service Request" value={serviceRequest?.id} />
                       <InfoRow label="Offer ID" value={serviceRequest?.offerId} />
