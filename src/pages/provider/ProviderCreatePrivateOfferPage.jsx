@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   FiAlertCircle,
   FiArrowLeft,
@@ -10,14 +10,14 @@ import {
   FiTag,
 } from "react-icons/fi";
 import { getOfferById } from "../../api/offerApi";
-import { getServiceRequestById } from "../../api/serviceRequestsApi";
+import { getAvailableServiceRequests } from "../../api/serviceRequestsApi";
 import { createPrivateOffer } from "../../api/privateOffersApi";
 
 const normalizeServiceRequest = (item) => ({
   id: item?.id || "",
   offerId: item?.offer_id || "",
   buyerId: item?.buyer_id || "",
-  incotermBuyer: item?.incoterm_buyer || "",
+  incotermBuyer: (item?.incoterm_buyer || "").toString().toUpperCase(),
   note: item?.note || "",
   status: item?.status || "",
   portOfDischarge: item?.port_of_discharge || "",
@@ -39,23 +39,30 @@ const formatDate = (value) => {
   return d.toLocaleDateString();
 };
 
-const destinationFor = (request) => {
-  const incoterm = (request?.incotermBuyer || "").toUpperCase();
-  if (incoterm === "CFR" || incoterm === "CIF") {
-    return request?.portOfDischarge || request?.countryCode || "Not provided";
-  }
-  return request?.warehouseAddress || request?.warehouseCode || request?.countryCode || "Not provided";
-};
+const destinationFor = (request) =>
+  request?.portOfDischarge ||
+  request?.warehouseAddress ||
+  request?.countryCode ||
+  request?.warehouseCode ||
+  "Not provided";
 
 const ProviderCreatePrivateOfferPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const serviceRequestId = searchParams.get("serviceRequestId");
   const offerId = searchParams.get("offerId");
 
-  const [serviceRequest, setServiceRequest] = useState(null);
-  const [offer, setOffer] = useState(null);
-  const [loadingContext, setLoadingContext] = useState(true);
+  const routeState = location.state || {};
+  const routeServiceRequest =
+    routeState.serviceRequest && `${routeState.serviceRequest.id}` === `${serviceRequestId}`
+      ? normalizeServiceRequest(routeState.serviceRequest)
+      : null;
+  const routeOffer = routeServiceRequest ? routeState.offer : null;
+
+  const [serviceRequest, setServiceRequest] = useState(routeServiceRequest);
+  const [offer, setOffer] = useState(routeOffer || null);
+  const [loadingContext, setLoadingContext] = useState(!(routeServiceRequest && routeOffer));
   const [contextError, setContextError] = useState("");
   const [form, setForm] = useState({
     negotiatedPrice: "",
@@ -99,20 +106,40 @@ const ProviderCreatePrivateOfferPage = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const fetchContext = async () => {
+  const loadServiceRequestFromAvailable = useCallback(async () => {
+    const res = await getAvailableServiceRequests({ limit: 100, offset: 0 });
+    const payload = res?.data ?? res ?? [];
+    const list = Array.isArray(payload?.data) ? payload.data : payload;
+    const normalized = (Array.isArray(list) ? list : []).map(normalizeServiceRequest);
+    return normalized.find((sr) => `${sr.id}` === `${serviceRequestId}`) || null;
+  }, [serviceRequestId]);
+
+  const fetchContext = useCallback(async () => {
     if (!serviceRequestId || !offerId) {
       setContextError("Missing service request or offer information.");
       setLoadingContext(false);
       return;
     }
+
     setLoadingContext(true);
     setContextError("");
     try {
-      const srRes = await getServiceRequestById(serviceRequestId);
-      setServiceRequest(normalizeServiceRequest(srRes?.data ?? srRes));
+      let sr = routeServiceRequest || serviceRequest;
+      if (!sr) {
+        sr = await loadServiceRequestFromAvailable();
+        setServiceRequest(sr);
+      }
 
-      const offerRes = await getOfferById(offerId);
-      setOffer(offerRes?.data ?? offerRes);
+      let offerData = routeOffer || offer;
+      if (!offerData) {
+        const offerRes = await getOfferById(offerId);
+        offerData = offerRes?.data ?? offerRes;
+        setOffer(offerData);
+      }
+
+      if (!sr) {
+        setContextError("Request not found or no longer available.");
+      }
     } catch (err) {
       const msg =
         err?.response?.data?.detail ||
@@ -124,12 +151,11 @@ const ProviderCreatePrivateOfferPage = () => {
     } finally {
       setLoadingContext(false);
     }
-  };
+  }, [offer, offerId, loadServiceRequestFromAvailable, routeOffer, routeServiceRequest, serviceRequest, serviceRequestId]);
 
   useEffect(() => {
     fetchContext();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceRequestId, offerId]);
+  }, [fetchContext]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -200,7 +226,9 @@ const ProviderCreatePrivateOfferPage = () => {
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => navigate("/provider/service-requests")}
+          onClick={() =>
+            navigate("/provider/service-requests", { state: { serviceRequest, offer } })
+          }
           className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:border-emerald-200 hover:text-emerald-700"
         >
           <FiArrowLeft className="h-4 w-4" />
@@ -273,7 +301,9 @@ const ProviderCreatePrivateOfferPage = () => {
               <div className="grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
                 <span>Buyer incoterm: {(serviceRequest?.incotermBuyer || "").toUpperCase()}</span>
                 <span>Destination: {destinationFor(serviceRequest)}</span>
-                <span>Buyer: {serviceRequest?.contactName || serviceRequest?.contactEmail || "N/A"}</span>
+                <span>
+                  Buyer: {serviceRequest?.contactName || serviceRequest?.contactEmail || "N/A"}
+                </span>
                 <span>Status: {serviceRequest?.status || "REQUESTED"}</span>
               </div>
               <div>

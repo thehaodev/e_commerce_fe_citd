@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { FiAlertCircle, FiArrowRight, FiRefreshCw, FiSearch } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-import useProviderServiceRequests from "../../hooks/useProviderServiceRequests";
+import useProviderIncomingServiceRequests from "../../hooks/useProviderIncomingServiceRequests";
 
 const formatDate = (value) => {
   if (!value) return "Not provided";
@@ -12,15 +12,28 @@ const formatDate = (value) => {
 
 const ProviderServiceRequestsPage = () => {
   const navigate = useNavigate();
-  const { requests, isLoading, error, refresh } = useProviderServiceRequests({ offerLimit: 10 });
+  const {
+    rows: incomingRows,
+    isLoading,
+    error,
+    refetch: refresh,
+  } = useProviderIncomingServiceRequests({ limit: 50, offerEnrichmentLimit: 10 });
 
   const rows = useMemo(
     () =>
-      requests.map((item) => ({
-        ...item,
-        offerDisplay: [item.offerCode, item.offerProductName].filter(Boolean).join(" · "),
-      })),
-    [requests]
+      incomingRows.map((item) => {
+        const sr = item.serviceRequest || {};
+        const offerDisplay = [item.offerCode || sr.offerId, item.offerProductName]
+          .filter(Boolean)
+          .join(" • ");
+        return {
+          ...item,
+          serviceRequest: sr,
+          offerDisplay,
+          createdAt: item.createdDate || sr.createdAt,
+        };
+      }),
+    [incomingRows]
   );
 
   return (
@@ -32,7 +45,8 @@ const ProviderServiceRequestsPage = () => {
           </p>
           <h1 className="text-3xl font-bold text-slate-900">Service Requests</h1>
           <p className="text-sm text-slate-600">
-            Aggregated from active/open offers (showing the first 10 offers to keep things fast).
+            Live list of requests available to providers. Enriches the first few with offer details
+            for faster browsing.
           </p>
         </div>
         <div className="flex gap-2">
@@ -53,7 +67,8 @@ const ProviderServiceRequestsPage = () => {
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Incoming Service Requests</h2>
             <p className="text-sm text-slate-600">
-              Built from active offers. Create private offers or jump into request details.
+              Loaded directly from the latest available requests. Create private offers or jump into
+              request details.
             </p>
           </div>
           <div className="text-sm text-slate-500">
@@ -136,11 +151,18 @@ const ProviderServiceRequestsPage = () => {
                     <td className="px-3 py-3 text-slate-800">
                       <div className="flex flex-col">
                         <span className="font-semibold">{req.offerDisplay || req.offerId}</span>
-                        {req.offer?.sellerIncoterm && (
+                        {(req.offer?.sellerIncoterm || req.offer?.seller_incoterm) && (
                           <span className="text-xs text-slate-500">
-                            Seller incoterm: {req.offer.sellerIncoterm}
+                            Seller incoterm: {req.offer?.sellerIncoterm || req.offer?.seller_incoterm}
                           </span>
                         )}
+                        {req.offerSellerIncoterm &&
+                          !req.offer?.sellerIncoterm &&
+                          !req.offer?.seller_incoterm && (
+                            <span className="text-xs text-slate-500">
+                              Seller incoterm: {req.offerSellerIncoterm}
+                            </span>
+                          )}
                       </div>
                     </td>
                     <td className="px-3 py-3">
@@ -159,7 +181,11 @@ const ProviderServiceRequestsPage = () => {
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
-                          onClick={() => navigate(`/provider/service-requests/${req.id}`)}
+                          onClick={() =>
+                            navigate(`/provider/service-requests/${req.id}`, {
+                              state: { serviceRequest: req.serviceRequest, offer: req.offer },
+                            })
+                          }
                           className="inline-flex items-center gap-1 rounded-full bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800"
                         >
                           View details
@@ -170,7 +196,10 @@ const ProviderServiceRequestsPage = () => {
                           disabled={!req.offerId}
                           onClick={() =>
                             navigate(
-                              `/provider/private-offers/new?offerId=${req.offerId}&serviceRequestId=${req.id}`
+                              `/provider/private-offers/new?offerId=${req.offerId}&serviceRequestId=${req.id}`,
+                              {
+                                state: { serviceRequest: req.serviceRequest, offer: req.offer },
+                              }
                             )
                           }
                           className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-3 py-2 text-xs font-semibold text-slate-900 shadow-sm transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60"

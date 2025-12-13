@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   FiAlertCircle,
   FiArrowLeft,
@@ -10,13 +10,13 @@ import {
   FiPhone,
 } from "react-icons/fi";
 import { getOfferById } from "../../api/offerApi";
-import { getServiceRequestById } from "../../api/serviceRequestsApi";
+import { getAvailableServiceRequests } from "../../api/serviceRequestsApi";
 
 const normalizeServiceRequest = (item) => ({
   id: item?.id || "",
   offerId: item?.offer_id || "",
   buyerId: item?.buyer_id || "",
-  incotermBuyer: item?.incoterm_buyer || "",
+  incotermBuyer: (item?.incoterm_buyer || "").toString().toUpperCase(),
   note: item?.note || "",
   status: item?.status || "",
   portOfDischarge: item?.port_of_discharge || "",
@@ -51,23 +51,41 @@ const InfoRow = ({ label, value }) => (
   </div>
 );
 
-const destinationFor = (request) => {
-  const incoterm = (request?.incotermBuyer || "").toUpperCase();
-  if (incoterm === "CFR" || incoterm === "CIF") {
-    return request?.portOfDischarge || request?.countryCode || "Not provided";
-  }
-  return request?.warehouseAddress || request?.warehouseCode || request?.countryCode || "Not provided";
-};
+const destinationFor = (request) =>
+  request?.portOfDischarge ||
+  request?.warehouseAddress ||
+  request?.countryCode ||
+  request?.warehouseCode ||
+  "Not provided";
 
 const ServiceRequestDetailPage = () => {
   const { serviceRequestId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
-  const [serviceRequest, setServiceRequest] = useState(null);
-  const [offer, setOffer] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const routeState = location.state || {};
+
+  const routeServiceRequest =
+    routeState.serviceRequest && `${routeState.serviceRequest.id}` === `${serviceRequestId}`
+      ? normalizeServiceRequest(routeState.serviceRequest)
+      : null;
+  const routeOffer = routeServiceRequest ? routeState.offer : null;
+  const hasOfferFromRoute = Boolean(routeOffer);
+  const [serviceRequest, setServiceRequest] = useState(routeServiceRequest);
+  const [offer, setOffer] = useState(routeOffer || null);
+  const [loading, setLoading] = useState(!routeServiceRequest);
   const [error, setError] = useState("");
 
-  const fetchDetail = async () => {
+  const loadOffer = useCallback(async (offerId) => {
+    if (!offerId) return;
+    try {
+      const res = await getOfferById(offerId);
+      setOffer(res?.data ?? res);
+    } catch (offerErr) {
+      console.error("Failed to load offer detail", offerErr);
+    }
+  }, []);
+
+  const fetchFromAvailable = useCallback(async () => {
     if (!serviceRequestId) {
       setError("Service request not found.");
       setLoading(false);
@@ -76,18 +94,22 @@ const ServiceRequestDetailPage = () => {
     setLoading(true);
     setError("");
     try {
-      const res = await getServiceRequestById(serviceRequestId);
-      const data = res?.data ?? res;
-      const normalized = normalizeServiceRequest(data);
-      setServiceRequest(normalized);
+      const res = await getAvailableServiceRequests({ limit: 100, offset: 0 });
+      const payload = res?.data ?? res ?? [];
+      const list = Array.isArray(payload?.data) ? payload.data : payload;
+      const normalizedList = (Array.isArray(list) ? list : []).map(normalizeServiceRequest);
+      const found = normalizedList.find((sr) => `${sr.id}` === `${serviceRequestId}`);
 
-      if (normalized.offerId) {
-        try {
-          const offerRes = await getOfferById(normalized.offerId);
-          setOffer(offerRes?.data ?? offerRes);
-        } catch (offerErr) {
-          console.error("Failed to load offer detail", offerErr);
-        }
+      if (!found) {
+        setError("Request not found or no longer available.");
+        setServiceRequest(null);
+        setOffer(null);
+        return;
+      }
+
+      setServiceRequest(found);
+      if (!hasOfferFromRoute && found.offerId) {
+        await loadOffer(found.offerId);
       }
     } catch (err) {
       const msg =
@@ -100,12 +122,18 @@ const ServiceRequestDetailPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [hasOfferFromRoute, loadOffer, serviceRequestId]);
 
   useEffect(() => {
-    fetchDetail();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceRequestId]);
+    if (routeServiceRequest) {
+      setLoading(false);
+      if (!offer && routeServiceRequest.offerId) {
+        loadOffer(routeServiceRequest.offerId);
+      }
+      return;
+    }
+    fetchFromAvailable();
+  }, [fetchFromAvailable, loadOffer, routeServiceRequest]);
 
   const offerLabel = useMemo(() => {
     if (!offer) return "Service Request";
@@ -118,7 +146,8 @@ const ServiceRequestDetailPage = () => {
       return;
     }
     navigate(
-      `/provider/private-offers/new?serviceRequestId=${serviceRequest.id}&offerId=${serviceRequest.offerId}`
+      `/provider/private-offers/new?serviceRequestId=${serviceRequest.id}&offerId=${serviceRequest.offerId}`,
+      { state: { serviceRequest, offer } }
     );
   };
 
@@ -159,10 +188,26 @@ const ServiceRequestDetailPage = () => {
             <p className="text-xs text-rose-600">{error}</p>
             <button
               type="button"
-              onClick={fetchDetail}
+              onClick={fetchFromAvailable}
               className="text-xs font-semibold text-rose-800 underline"
             >
               Retry
+            </button>
+          </div>
+        </div>
+      ) : !serviceRequest ? (
+        <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+          <FiAlertCircle className="mt-0.5 text-amber-500" />
+          <div className="space-y-1">
+            <p className="font-semibold text-slate-900">
+              Request not found or no longer available.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate("/provider/service-requests")}
+              className="text-xs font-semibold text-emerald-700 underline"
+            >
+              Back to list
             </button>
           </div>
         </div>
