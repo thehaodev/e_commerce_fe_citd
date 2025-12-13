@@ -4,10 +4,10 @@ import ProviderStats from "../../components/provider/ProviderStats";
 import IncomingServiceRequestsPanel from "../../components/provider/IncomingServiceRequestsPanel";
 import PrivateOffersPanel from "../../components/provider/PrivateOffersPanel";
 import ProposalsPanel from "../../components/provider/ProposalsPanel";
-import { fetchMyPrivateOffers } from "../../api/privateOffersApi";
+import { privateOfferApi } from "../../api/privateOffersApi";
 import { getMyProposals } from "../../api/proposalsApi";
-import { getServiceRequestById } from "../../api/serviceRequestsApi";
 import useProviderIncomingServiceRequests from "../../hooks/useProviderIncomingServiceRequests";
+import { fetchProviderServiceRequestById } from "../../utils/providerServiceRequestUtils";
 
 const normalizePrivateOffer = (item) => ({
   id: item?.id || "",
@@ -42,25 +42,6 @@ const normalizeProposal = (item) => ({
   updatedAt: item?.updated_at || "",
 });
 
-const normalizeServiceRequest = (item) => ({
-  id: item?.id || "",
-  offerId: item?.offer_id || "",
-  buyerId: item?.buyer_id || "",
-  incotermBuyer: item?.incoterm_buyer || "",
-  note: item?.note || "",
-  status: item?.status || "",
-  portOfDischarge: item?.port_of_discharge || "",
-  countryCode: item?.country_code || "",
-  insuranceType: item?.insurance_type || "",
-  warehouseAddress: item?.warehouse_address || "",
-  warehouseCode: item?.warehouse_code || "",
-  contactName: item?.contact_name || "",
-  contactPhone: item?.contact_phone || "",
-  contactEmail: item?.contact_email || "",
-  createdAt: item?.created_at || "",
-  updatedAt: item?.updated_at || "",
-});
-
 export default function ProviderHome() {
   const navigate = useNavigate();
   const [privateOffers, setPrivateOffers] = useState([]);
@@ -81,13 +62,13 @@ export default function ProviderHome() {
 
   const hydrateServiceRequestMap = async (privateOfferList, proposalList) => {
     try {
-      const srIds = [
-        ...new Set(
-          [...privateOfferList, ...proposalList]
-            .map((item) => item.serviceRequestId)
-            .filter(Boolean)
-        ),
-      ];
+      const srOfferLookup = {};
+      [...privateOfferList, ...proposalList].forEach((item) => {
+        if (item.serviceRequestId) {
+          srOfferLookup[item.serviceRequestId] = item.offerId || srOfferLookup[item.serviceRequestId];
+        }
+      });
+      const srIds = Object.keys(srOfferLookup);
       if (srIds.length === 0) {
         setServiceRequestMap({});
         return;
@@ -96,9 +77,13 @@ export default function ProviderHome() {
       await Promise.all(
         srIds.map(async (srId) => {
           try {
-            const srRes = await getServiceRequestById(srId);
-            const payload = srRes?.data ?? srRes;
-            srMap[srId] = normalizeServiceRequest(payload);
+            const sr = await fetchProviderServiceRequestById({
+              serviceRequestId: srId,
+              offerId: srOfferLookup[srId],
+              limit: 200,
+              offset: 0,
+            });
+            srMap[srId] = sr || null;
           } catch (err) {
             srMap[srId] = null;
           }
@@ -116,7 +101,10 @@ export default function ProviderHome() {
     setErrorPrivateOffers(null);
     setErrorProposals(null);
     try {
-      const [poRes, proposalRes] = await Promise.all([fetchMyPrivateOffers(), getMyProposals()]);
+      const [poRes, proposalRes] = await Promise.all([
+        privateOfferApi.getMyPrivateOffers(),
+        getMyProposals(),
+      ]);
       const rawPrivateOffers = poRes?.data ?? poRes ?? [];
       const rawProposals = proposalRes?.data ?? proposalRes ?? [];
       const privateOfferList = Array.isArray(rawPrivateOffers?.data) ? rawPrivateOffers.data : rawPrivateOffers;

@@ -9,9 +9,13 @@ import {
   FiRefreshCw,
   FiTag,
 } from "react-icons/fi";
-import { getPrivateOfferById } from "../../api/privateOffersApi";
+import { privateOfferApi } from "../../api/privateOffersApi";
 import { getOfferById } from "../../api/offerApi";
-import { getServiceRequestById } from "../../api/serviceRequestsApi";
+import {
+  destinationForServiceRequest,
+  fetchProviderServiceRequestById,
+  normalizeProviderServiceRequest,
+} from "../../utils/providerServiceRequestUtils";
 
 const normalizePrivateOffer = (item) => ({
   id: item?.id || "",
@@ -28,37 +32,11 @@ const normalizePrivateOffer = (item) => ({
   updatedAt: item?.updated_at || "",
 });
 
-const normalizeServiceRequest = (item) => ({
-  id: item?.id || "",
-  buyerId: item?.buyer_id || "",
-  incotermBuyer: item?.incoterm_buyer || "",
-  note: item?.note || "",
-  status: item?.status || "",
-  portOfDischarge: item?.port_of_discharge || "",
-  countryCode: item?.country_code || "",
-  insuranceType: item?.insurance_type || "",
-  warehouseAddress: item?.warehouse_address || "",
-  warehouseCode: item?.warehouse_code || "",
-  contactName: item?.contact_name || "",
-  contactPhone: item?.contact_phone || "",
-  contactEmail: item?.contact_email || "",
-  createdAt: item?.created_at || "",
-  updatedAt: item?.updated_at || "",
-});
-
 const formatDate = (value) => {
   if (!value) return "Not provided";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
   return d.toLocaleDateString();
-};
-
-const destinationFor = (request) => {
-  const incoterm = (request?.incotermBuyer || "").toUpperCase();
-  if (incoterm === "CFR" || incoterm === "CIF") {
-    return request?.portOfDischarge || request?.countryCode || "Not provided";
-  }
-  return request?.warehouseAddress || request?.warehouseCode || request?.countryCode || "Not provided";
 };
 
 const StatusBadge = ({ value }) => (
@@ -86,7 +64,7 @@ const ProviderPrivateOfferDetailPage = () => {
     setLoading(true);
     setError("");
     try {
-      const res = await getPrivateOfferById(privateOfferId);
+      const res = await privateOfferApi.getPrivateOfferById(privateOfferId);
       const data = normalizePrivateOffer(res?.data ?? res);
       setPrivateOffer(data);
 
@@ -101,17 +79,27 @@ const ProviderPrivateOfferDetailPage = () => {
 
       if (data.serviceRequestId) {
         try {
-          const srRes = await getServiceRequestById(data.serviceRequestId);
-          setServiceRequest(normalizeServiceRequest(srRes?.data ?? srRes));
+          const srRes = await fetchProviderServiceRequestById({
+            serviceRequestId: data.serviceRequestId,
+            offerId: data.offerId,
+            limit: 200,
+            offset: 0,
+          });
+          setServiceRequest(srRes ? normalizeProviderServiceRequest(srRes) : null);
         } catch (err) {
+          if (!error && (err?.response?.status === 401 || err?.response?.status === 403)) {
+            setError("You are not allowed");
+          }
           setServiceRequest(null);
         }
       }
     } catch (err) {
       const msg =
-        err?.response?.data?.detail ||
-        err?.message ||
-        "Private offer not found or you are not allowed to view it.";
+        err?.response?.status === 401 || err?.response?.status === 403
+          ? "You are not allowed"
+          : err?.response?.data?.detail ||
+            err?.message ||
+            "Private offer not found or you are not allowed to view it.";
       setError(msg);
       setPrivateOffer(null);
       setOffer(null);
@@ -243,7 +231,10 @@ const ProviderPrivateOfferDetailPage = () => {
                     label="Buyer Incoterm"
                     value={(serviceRequest?.incotermBuyer || "").toString().toUpperCase()}
                   />
-                  <InfoRow label="Destination" value={destinationFor(serviceRequest)} />
+                  <InfoRow
+                    label="Destination"
+                    value={destinationForServiceRequest(serviceRequest)}
+                  />
                   <InfoRow label="Insurance Type" value={serviceRequest?.insuranceType} />
                   <InfoRow label="Status" value={serviceRequest?.status || "REQUESTED"} />
                   <InfoRow label="Buyer ID" value={serviceRequest?.buyerId} />
@@ -289,6 +280,23 @@ const ProviderPrivateOfferDetailPage = () => {
                     {privateOffer?.internalNotes || "No internal notes."}
                   </p>
                 </div>
+                <button
+                  type="button"
+                  disabled={!privateOffer?.id}
+                  onClick={() =>
+                    privateOffer?.id &&
+                    navigate(`/provider/proposals/new?privateOfferId=${privateOffer.id}`, {
+                      state: { privateOffer, serviceRequest, offer },
+                    })
+                  }
+                  className={`w-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition ${
+                    privateOffer?.id
+                      ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                      : "bg-slate-200 text-slate-500 cursor-not-allowed"
+                  }`}
+                >
+                  Send Proposal
+                </button>
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
