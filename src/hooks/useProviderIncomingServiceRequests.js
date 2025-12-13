@@ -1,28 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { getOfferById } from "../api/offerApi";
 import { getAvailableServiceRequests } from "../api/serviceRequestsApi";
-
-const normalizeServiceRequest = (item) => ({
-  id: item?.id || "",
-  offerId: item?.offer_id || "",
-  buyerId: item?.buyer_id || "",
-  incotermBuyer: (item?.incoterm_buyer || "").toUpperCase(),
-  note: item?.note || "",
-  status: item?.status || "",
-  portOfDischarge: item?.port_of_discharge || "",
-  countryCode: item?.country_code || "",
-  insuranceType: item?.insurance_type || "",
-  warehouseAddress: item?.warehouse_address || "",
-  warehouseCode: item?.warehouse_code || "",
-  contactName: item?.contact_name || "",
-  contactPhone: item?.contact_phone || "",
-  contactEmail: item?.contact_email || "",
-  createdAt: item?.created_at || item?.createdAt || "",
-  updatedAt: item?.updated_at || item?.updatedAt || "",
-});
-
-const destinationFor = (request) =>
-  request?.portOfDischarge || request?.warehouseAddress || "—";
+import {
+  destinationForServiceRequest,
+  normalizeProviderServiceRequest,
+  setProviderServiceRequestCache,
+} from "../utils/providerServiceRequestUtils";
 
 const toTimestamp = (value) => {
   if (!value) return 0;
@@ -46,7 +29,9 @@ const useProviderIncomingServiceRequests = ({
       const res = await getAvailableServiceRequests({ limit, offset });
       const payload = res?.data ?? res ?? [];
       const list = Array.isArray(payload?.data) ? payload.data : payload;
-      const normalized = (Array.isArray(list) ? list : []).map(normalizeServiceRequest);
+      const normalized = (Array.isArray(list) ? list : []).map(normalizeProviderServiceRequest);
+
+      setProviderServiceRequestCache(normalized);
 
       const uniqueOfferIds = [];
       normalized.forEach((sr) => {
@@ -76,7 +61,7 @@ const useProviderIncomingServiceRequests = ({
             offerId: serviceRequest.offerId,
             incotermBuyer: serviceRequest.incotermBuyer,
             status: serviceRequest.status || "REQUESTED",
-            destination: destinationFor(serviceRequest),
+            destination: destinationForServiceRequest(serviceRequest),
             createdDate: serviceRequest.createdAt,
             serviceRequest,
             offer,
@@ -93,8 +78,11 @@ const useProviderIncomingServiceRequests = ({
 
       setRows(mappedRows);
     } catch (err) {
+      const status = err?.response?.status;
       const message =
-        err?.response?.data?.detail || err?.message || "Could not load service requests.";
+        status === 401 || status === 403
+          ? "You are not allowed"
+          : err?.response?.data?.detail || err?.message || "Could not load service requests.";
       setError(message);
       setRows([]);
     } finally {

@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { FiAlertCircle, FiArrowRight, FiRefreshCw, FiSearch, FiTag } from "react-icons/fi";
-import { fetchMyPrivateOffers } from "../../api/privateOffersApi";
+import { privateOfferApi } from "../../api/privateOffersApi";
 import { getOfferById } from "../../api/offerApi";
-import { getServiceRequestById } from "../../api/serviceRequestsApi";
+import {
+  destinationForServiceRequest,
+  fetchProviderServiceRequestById,
+} from "../../utils/providerServiceRequestUtils";
 
 const normalizePrivateOffer = (item) => ({
   id: item?.id || "",
@@ -18,14 +21,6 @@ const normalizePrivateOffer = (item) => ({
   status: item?.status || "",
   createdAt: item?.created_at || "",
   updatedAt: item?.updated_at || "",
-});
-
-const normalizeServiceRequest = (item) => ({
-  id: item?.id || "",
-  incotermBuyer: item?.incoterm_buyer || "",
-  contactName: item?.contact_name || "",
-  contactEmail: item?.contact_email || "",
-  note: item?.note || "",
 });
 
 const formatDate = (value) => {
@@ -56,18 +51,27 @@ const SkeletonRow = () => (
 
 const ProviderPrivateOffersPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [offers, setOffers] = useState([]);
   const [offerMap, setOfferMap] = useState({});
   const [serviceRequestMap, setServiceRequestMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [flashMessage, setFlashMessage] = useState(location.state?.successMessage || "");
+
+  useEffect(() => {
+    if (location.state?.successMessage) {
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
 
   const fetchData = async () => {
     setLoading(true);
     setError("");
+    let authError = "";
     try {
-      const res = await fetchMyPrivateOffers();
+      const res = await privateOfferApi.getMyPrivateOffers();
       const payload = res?.data ?? res;
       const list = Array.isArray(payload?.data)
         ? payload.data
@@ -80,6 +84,12 @@ const ProviderPrivateOffersPage = () => {
       const uniqueSrIds = [
         ...new Set(normalized.map((i) => i.serviceRequestId).filter(Boolean)),
       ];
+      const srOfferLookup = {};
+      normalized.forEach((item) => {
+        if (item.serviceRequestId && item.offerId) {
+          srOfferLookup[item.serviceRequestId] = item.offerId;
+        }
+      });
 
       const offerDetails = {};
       await Promise.all(
@@ -97,9 +107,17 @@ const ProviderPrivateOffersPage = () => {
       await Promise.all(
         uniqueSrIds.map(async (srId) => {
           try {
-            const detail = await getServiceRequestById(srId);
-            srDetails[srId] = normalizeServiceRequest(detail?.data ?? detail);
+            const detail = await fetchProviderServiceRequestById({
+              serviceRequestId: srId,
+              offerId: srOfferLookup[srId],
+              limit: 200,
+              offset: 0,
+            });
+            srDetails[srId] = detail || null;
           } catch (err) {
+            if (!authError && (err?.response?.status === 401 || err?.response?.status === 403)) {
+              authError = "You are not allowed";
+            }
             srDetails[srId] = null;
           }
         })
@@ -109,16 +127,24 @@ const ProviderPrivateOffersPage = () => {
       setServiceRequestMap(srDetails);
       setOffers(normalized);
     } catch (err) {
+      const status = err?.response?.status;
       const msg =
-        err?.response?.data?.detail ||
-        err?.message ||
-        "Could not load private offers for this provider.";
-      setError(msg);
+        status === 401 || status === 403
+          ? "You are not allowed"
+          : err?.response?.data?.detail ||
+            err?.message ||
+            "Could not load private offers for this provider.";
+      setError(authError || msg);
       setOffers([]);
       setOfferMap({});
       setServiceRequestMap({});
+      return;
     } finally {
       setLoading(false);
+    }
+
+    if (authError) {
+      setError(authError);
     }
   };
 
@@ -165,6 +191,25 @@ const ProviderPrivateOffersPage = () => {
           These are the private offers you created in response to buyer service requests.
         </p>
       </div>
+
+      {flashMessage ? (
+        <div className="flex items-start justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <div className="flex items-start gap-2">
+            <FiTag className="h-4 w-4 mt-0.5" />
+            <div>
+              <p className="font-semibold">Success</p>
+              <p className="text-xs text-emerald-700">{flashMessage}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFlashMessage("")}
+            className="text-xs font-semibold text-emerald-800 underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
         <div className="relative w-full md:max-w-md">
@@ -309,16 +354,19 @@ const ProviderPrivateOffersPage = () => {
                           )}
                         </div>
                       </td>
-                      <td className="px-3 py-3 text-slate-800">
-                        <div className="flex flex-col">
-                          <span className="font-semibold">{srLabel}</span>
-                          {item.serviceRequest?.incotermBuyer && (
-                            <span className="text-xs text-slate-500">
-                              Buyer incoterm: {item.serviceRequest.incotermBuyer}
-                            </span>
-                          )}
-                        </div>
-                      </td>
+                  <td className="px-3 py-3 text-slate-800">
+                    <div className="flex flex-col">
+                      <span className="font-semibold">{srLabel}</span>
+                      {item.serviceRequest?.incotermBuyer && (
+                        <span className="text-xs text-slate-500">
+                          Buyer incoterm: {item.serviceRequest.incotermBuyer}
+                        </span>
+                      )}
+                      <span className="text-xs text-slate-500">
+                        {destinationForServiceRequest(item.serviceRequest)}
+                      </span>
+                    </div>
+                  </td>
                       <td className="px-3 py-3 text-slate-800">
                         {item.negotiatedPrice || "Not provided"}
                       </td>

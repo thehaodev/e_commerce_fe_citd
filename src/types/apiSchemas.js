@@ -31,6 +31,31 @@ export const SERVICE_REQUEST_STATUSES = ["REQUESTED"];
  */
 
 /**
+ * @typedef {Object} PrivateOfferResponse
+ * @property {string} id
+ * @property {string} offer_id
+ * @property {string} service_request_id
+ * @property {string} provider_id
+ * @property {number | string} negotiated_price
+ * @property {string | null} updated_crd
+ * @property {string | null} updated_etd
+ * @property {string} seller_documentation
+ * @property {string | null} internal_notes
+ * @property {string} status
+ * @property {string} created_at
+ * @property {string} updated_at
+ */
+
+/**
+ * @typedef {Object} PrivateOfferCreatePayload
+ * @property {number} negotiated_price
+ * @property {string | null} updated_crd
+ * @property {string | null} updated_etd
+ * @property {string} seller_documentation
+ * @property {string | null} internal_notes
+ */
+
+/**
  * Minimal Buyer Interest shape used in the UI.
  * @typedef {Object} BuyerInterest
  * @property {string} id

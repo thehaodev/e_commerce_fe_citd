@@ -300,6 +300,14 @@ const BuyerServiceRequestListPage = () => {
                           View details
                           <FiArrowRight className="h-4 w-4" />
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/buyer/service-requests/${req.id}/proposals`)}
+                          className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-white px-3 py-2 text-xs font-semibold text-amber-800 transition hover:border-amber-300"
+                        >
+                          Proposals
+                          <FiArrowRight className="h-4 w-4" />
+                        </button>
                         {req.offerId && (
                           <button
                             type="button"

@@ -10,26 +10,12 @@ import {
   FiPhone,
 } from "react-icons/fi";
 import { getOfferById } from "../../api/offerApi";
-import { getAvailableServiceRequests } from "../../api/serviceRequestsApi";
-
-const normalizeServiceRequest = (item) => ({
-  id: item?.id || "",
-  offerId: item?.offer_id || "",
-  buyerId: item?.buyer_id || "",
-  incotermBuyer: (item?.incoterm_buyer || "").toString().toUpperCase(),
-  note: item?.note || "",
-  status: item?.status || "",
-  portOfDischarge: item?.port_of_discharge || "",
-  countryCode: item?.country_code || "",
-  insuranceType: item?.insurance_type || "",
-  warehouseAddress: item?.warehouse_address || "",
-  warehouseCode: item?.warehouse_code || "",
-  contactName: item?.contact_name || "",
-  contactPhone: item?.contact_phone || "",
-  contactEmail: item?.contact_email || "",
-  createdAt: item?.created_at || "",
-  updatedAt: item?.updated_at || "",
-});
+import {
+  destinationForServiceRequest,
+  fetchProviderServiceRequestById,
+  getCachedProviderServiceRequest,
+  normalizeProviderServiceRequest,
+} from "../../utils/providerServiceRequestUtils";
 
 const formatDate = (value) => {
   if (!value) return "Not provided";
@@ -51,13 +37,6 @@ const InfoRow = ({ label, value }) => (
   </div>
 );
 
-const destinationFor = (request) =>
-  request?.portOfDischarge ||
-  request?.warehouseAddress ||
-  request?.countryCode ||
-  request?.warehouseCode ||
-  "Not provided";
-
 const ServiceRequestDetailPage = () => {
   const { serviceRequestId } = useParams();
   const location = useLocation();
@@ -66,14 +45,21 @@ const ServiceRequestDetailPage = () => {
 
   const routeServiceRequest =
     routeState.serviceRequest && `${routeState.serviceRequest.id}` === `${serviceRequestId}`
-      ? normalizeServiceRequest(routeState.serviceRequest)
+      ? normalizeProviderServiceRequest(routeState.serviceRequest)
       : null;
   const routeOffer = routeServiceRequest ? routeState.offer : null;
+  const cachedServiceRequest =
+    !routeServiceRequest && serviceRequestId
+      ? getCachedProviderServiceRequest(serviceRequestId)
+      : null;
+  const initialServiceRequest = routeServiceRequest || cachedServiceRequest || null;
   const hasOfferFromRoute = Boolean(routeOffer);
-  const [serviceRequest, setServiceRequest] = useState(routeServiceRequest);
+  const [serviceRequest, setServiceRequest] = useState(initialServiceRequest);
   const [offer, setOffer] = useState(routeOffer || null);
-  const [loading, setLoading] = useState(!routeServiceRequest);
+  const [loading, setLoading] = useState(!initialServiceRequest);
   const [error, setError] = useState("");
+  const offerIdHint =
+    routeOffer?.id || routeServiceRequest?.offerId || cachedServiceRequest?.offerId || null;
 
   const loadOffer = useCallback(async (offerId) => {
     if (!offerId) return;
@@ -85,7 +71,7 @@ const ServiceRequestDetailPage = () => {
     }
   }, []);
 
-  const fetchFromAvailable = useCallback(async () => {
+  const loadServiceRequest = useCallback(async () => {
     if (!serviceRequestId) {
       setError("Service request not found.");
       setLoading(false);
@@ -94,11 +80,12 @@ const ServiceRequestDetailPage = () => {
     setLoading(true);
     setError("");
     try {
-      const res = await getAvailableServiceRequests({ limit: 100, offset: 0 });
-      const payload = res?.data ?? res ?? [];
-      const list = Array.isArray(payload?.data) ? payload.data : payload;
-      const normalizedList = (Array.isArray(list) ? list : []).map(normalizeServiceRequest);
-      const found = normalizedList.find((sr) => `${sr.id}` === `${serviceRequestId}`);
+      const found = await fetchProviderServiceRequestById({
+        serviceRequestId,
+        offerId: offerIdHint,
+        limit: 200,
+        offset: 0,
+      });
 
       if (!found) {
         setError("Request not found or no longer available.");
@@ -108,32 +95,35 @@ const ServiceRequestDetailPage = () => {
       }
 
       setServiceRequest(found);
-      if (!hasOfferFromRoute && found.offerId) {
+      if (!offer && found.offerId) {
         await loadOffer(found.offerId);
       }
     } catch (err) {
+      const status = err?.response?.status;
       const msg =
-        err?.response?.data?.detail ||
-        err?.message ||
-        "Service request not found or you are not allowed to view it.";
+        status === 401 || status === 403
+          ? "You are not allowed"
+          : err?.response?.data?.detail ||
+            err?.message ||
+            "Service request not found or you are not allowed to view it.";
       setError(msg);
       setServiceRequest(null);
       setOffer(null);
     } finally {
       setLoading(false);
     }
-  }, [hasOfferFromRoute, loadOffer, serviceRequestId]);
+  }, [offer, loadOffer, offerIdHint, serviceRequestId]);
 
   useEffect(() => {
-    if (routeServiceRequest) {
+    if (serviceRequest) {
       setLoading(false);
-      if (!offer && routeServiceRequest.offerId) {
-        loadOffer(routeServiceRequest.offerId);
+      if (!offer && serviceRequest.offerId) {
+        loadOffer(serviceRequest.offerId);
       }
       return;
     }
-    fetchFromAvailable();
-  }, [fetchFromAvailable, loadOffer, routeServiceRequest]);
+    loadServiceRequest();
+  }, [loadOffer, loadServiceRequest, offer, serviceRequest]);
 
   const offerLabel = useMemo(() => {
     if (!offer) return "Service Request";
@@ -223,7 +213,7 @@ const ServiceRequestDetailPage = () => {
               </h1>
               <p className="text-sm text-slate-600">
                 Buyer Incoterm: {(serviceRequest?.incotermBuyer || "").toString().toUpperCase()} |
-                Destination: {destinationFor(serviceRequest)}
+                Destination: {destinationForServiceRequest(serviceRequest)}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -263,7 +253,10 @@ const ServiceRequestDetailPage = () => {
                     label="Buyer Incoterm"
                     value={(serviceRequest?.incotermBuyer || "").toString().toUpperCase()}
                   />
-                  <InfoRow label="Destination" value={destinationFor(serviceRequest)} />
+                  <InfoRow
+                    label="Destination"
+                    value={destinationForServiceRequest(serviceRequest)}
+                  />
                   <InfoRow label="Insurance Type" value={serviceRequest?.insuranceType} />
                   <InfoRow label="Status" value={serviceRequest?.status || "REQUESTED"} />
                   <InfoRow label="Buyer ID" value={serviceRequest?.buyerId} />

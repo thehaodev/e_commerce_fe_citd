@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiAlertCircle, FiArrowRight, FiRefreshCw, FiSearch } from "react-icons/fi";
-import { getMyProposals } from "../../api/proposalsApi";
-import { getServiceRequestById } from "../../api/serviceRequestsApi";
+import { getMyProposals, withdrawProposal } from "../../api/proposalsApi";
 import { getOfferById } from "../../api/offerApi";
-import { getPrivateOfferById } from "../../api/privateOffersApi";
+import { privateOfferApi } from "../../api/privateOffersApi";
+import {
+  destinationForServiceRequest,
+  fetchProviderServiceRequestById,
+} from "../../utils/providerServiceRequestUtils";
 
 const statusStyles = {
   AWARDED: "bg-emerald-100 text-emerald-700",
@@ -37,18 +40,6 @@ const normalizeProposal = (item) => ({
   createdAt: item?.created_at || "",
 });
 
-const normalizeServiceRequest = (item) => ({
-  id: item?.id || "",
-  offerId: item?.offer_id || "",
-  incotermBuyer: item?.incoterm_buyer || "",
-  destination:
-    item?.port_of_discharge ||
-    item?.warehouse_address ||
-    item?.warehouse_code ||
-    item?.country_code ||
-    "",
-});
-
 const SkeletonRow = () => (
   <tr className="animate-pulse">
     {Array.from({ length: 7 }).map((_, idx) => (
@@ -72,10 +63,14 @@ const ProviderProposalsPage = () => {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [withdrawingId, setWithdrawingId] = useState(null);
+  const [actionError, setActionError] = useState("");
 
   const fetchData = async () => {
     setLoading(true);
     setError("");
+    setActionError("");
+    let authError = "";
     try {
       const res = await getMyProposals();
       const raw = res?.data ?? res ?? [];
@@ -90,7 +85,7 @@ const ProviderProposalsPage = () => {
       await Promise.all(
         privateOfferIds.map(async (poId) => {
           try {
-            const poRes = await getPrivateOfferById(poId);
+            const poRes = await privateOfferApi.getPrivateOfferById(poId);
             poMap[poId] = poRes?.data ?? poRes;
           } catch (err) {
             poMap[poId] = null;
@@ -99,16 +94,31 @@ const ProviderProposalsPage = () => {
       );
       setPrivateOfferMap(poMap);
 
+      const srOfferHint = {};
+      list.forEach((item) => {
+        if (item.serviceRequestId) {
+          srOfferHint[item.serviceRequestId] = item.offerId || srOfferHint[item.serviceRequestId];
+        }
+      });
+
       const srMap = {};
       await Promise.all(
         srIds.map(async (srId) => {
           try {
-            const srRes = await getServiceRequestById(srId);
-            srMap[srId] = normalizeServiceRequest(srRes);
-            if (srRes?.offer_id) {
-              offerIds.add(srRes.offer_id);
+            const sr = await fetchProviderServiceRequestById({
+              serviceRequestId: srId,
+              offerId: srOfferHint[srId],
+              limit: 200,
+              offset: 0,
+            });
+            srMap[srId] = sr || null;
+            if (sr?.offerId) {
+              offerIds.add(sr.offerId);
             }
           } catch (err) {
+            if (!authError && (err?.response?.status === 401 || err?.response?.status === 403)) {
+              authError = "You are not allowed";
+            }
             srMap[srId] = null;
           }
         })
@@ -128,23 +138,56 @@ const ProviderProposalsPage = () => {
       );
       setOfferMap(oMap);
     } catch (err) {
+      const status = err?.response?.status;
       const msg =
-        err?.response?.data?.detail ||
-        err?.message ||
-        "Unable to load proposals for this provider.";
-      setError(msg);
+        status === 401 || status === 403
+          ? "You are not allowed"
+          : err?.response?.data?.detail ||
+            err?.message ||
+            "Unable to load proposals for this provider.";
+      setError(authError || msg);
       setProposals([]);
       setPrivateOfferMap({});
       setServiceRequestMap({});
       setOfferMap({});
+      return;
     } finally {
       setLoading(false);
+    }
+
+    if (authError) {
+      setError(authError);
     }
   };
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  const handleWithdraw = async (proposalId) => {
+    if (!proposalId) return;
+    const confirmed = window.confirm("Withdraw this proposal?");
+    if (!confirmed) return;
+    setWithdrawingId(proposalId);
+    setActionError("");
+    try {
+      const res = await withdrawProposal(proposalId);
+      const data = res?.data ?? res;
+      const newStatus = data?.status || "WITHDRAWN";
+      setProposals((prev) =>
+        prev.map((p) => (p.id === proposalId ? { ...p, status: newStatus } : p))
+      );
+    } catch (err) {
+      const status = err?.response?.status;
+      const msg =
+        status === 401 || status === 403
+          ? "You are not allowed"
+          : err?.response?.data?.detail || err?.message || "Unable to withdraw this proposal.";
+      setActionError(msg);
+    } finally {
+      setWithdrawingId(null);
+    }
+  };
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -158,7 +201,7 @@ const ProviderProposalsPage = () => {
         proposal.offerId,
         proposal.serviceRequestId,
         offerMap[proposal.offerId]?.product_name,
-        serviceRequestMap[proposal.serviceRequestId]?.destination,
+        destinationForServiceRequest(serviceRequestMap[proposal.serviceRequestId]),
       ]
         .filter(Boolean)
         .join(" ")
@@ -212,6 +255,16 @@ const ProviderProposalsPage = () => {
           </button>
         </div>
       </div>
+
+      {actionError ? (
+        <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <FiAlertCircle className="mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-semibold">Action failed.</p>
+            <p className="text-xs text-rose-600">{actionError}</p>
+          </div>
+        </div>
+      ) : null}
 
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="px-4 py-4">
@@ -298,7 +351,7 @@ const ProviderProposalsPage = () => {
                       <td className="px-3 py-3 text-slate-800">
                         {serviceRequest?.incotermBuyer || serviceRequest?.incoterm_buyer || "N/A"}
                         <div className="text-xs text-slate-500">
-                          {serviceRequest?.destination || "Destination not provided"}
+                          {destinationForServiceRequest(serviceRequest)}
                         </div>
                       </td>
                       <td className="px-3 py-3 text-slate-800">
@@ -322,14 +375,30 @@ const ProviderProposalsPage = () => {
                       </td>
                       <td className="px-3 py-3 text-slate-600">{proposal.createdAt ? new Date(proposal.createdAt).toLocaleDateString() : "N/A"}</td>
                       <td className="px-3 py-3">
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/provider/proposals/${proposal.id}`)}
-                          className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition bg-emerald-500 text-white shadow-sm hover:bg-emerald-600"
-                        >
-                          View details
-                          <FiArrowRight className="h-4 w-4" />
-                        </button>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/provider/proposals/${proposal.id}`)}
+                            className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition bg-emerald-500 text-white shadow-sm hover:bg-emerald-600"
+                          >
+                            View details
+                            <FiArrowRight className="h-4 w-4" />
+                          </button>
+                          {proposal.status === "PROPOSAL_SENT" ? (
+                            <button
+                              type="button"
+                              onClick={() => handleWithdraw(proposal.id)}
+                              disabled={withdrawingId === proposal.id}
+                              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${
+                                withdrawingId === proposal.id
+                                  ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                                  : "bg-white text-rose-700 border border-rose-200 hover:bg-rose-50"
+                              }`}
+                            >
+                              {withdrawingId === proposal.id ? "Withdrawing..." : "Withdraw"}
+                            </button>
+                          ) : null}
+                        </div>
                       </td>
                     </tr>
                   );

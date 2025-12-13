@@ -10,27 +10,13 @@ import {
   FiTag,
 } from "react-icons/fi";
 import { getOfferById } from "../../api/offerApi";
-import { getAvailableServiceRequests } from "../../api/serviceRequestsApi";
-import { createPrivateOffer } from "../../api/privateOffersApi";
-
-const normalizeServiceRequest = (item) => ({
-  id: item?.id || "",
-  offerId: item?.offer_id || "",
-  buyerId: item?.buyer_id || "",
-  incotermBuyer: (item?.incoterm_buyer || "").toString().toUpperCase(),
-  note: item?.note || "",
-  status: item?.status || "",
-  portOfDischarge: item?.port_of_discharge || "",
-  countryCode: item?.country_code || "",
-  insuranceType: item?.insurance_type || "",
-  warehouseAddress: item?.warehouse_address || "",
-  warehouseCode: item?.warehouse_code || "",
-  contactName: item?.contact_name || "",
-  contactPhone: item?.contact_phone || "",
-  contactEmail: item?.contact_email || "",
-  createdAt: item?.created_at || "",
-  updatedAt: item?.updated_at || "",
-});
+import { privateOfferApi } from "../../api/privateOffersApi";
+import {
+  destinationForServiceRequest,
+  fetchProviderServiceRequestById,
+  getCachedProviderServiceRequest,
+  normalizeProviderServiceRequest,
+} from "../../utils/providerServiceRequestUtils";
 
 const formatDate = (value) => {
   if (!value) return "Not provided";
@@ -38,13 +24,6 @@ const formatDate = (value) => {
   if (Number.isNaN(d.getTime())) return value;
   return d.toLocaleDateString();
 };
-
-const destinationFor = (request) =>
-  request?.portOfDischarge ||
-  request?.warehouseAddress ||
-  request?.countryCode ||
-  request?.warehouseCode ||
-  "Not provided";
 
 const ProviderCreatePrivateOfferPage = () => {
   const navigate = useNavigate();
@@ -56,13 +35,19 @@ const ProviderCreatePrivateOfferPage = () => {
   const routeState = location.state || {};
   const routeServiceRequest =
     routeState.serviceRequest && `${routeState.serviceRequest.id}` === `${serviceRequestId}`
-      ? normalizeServiceRequest(routeState.serviceRequest)
+      ? normalizeProviderServiceRequest(routeState.serviceRequest)
       : null;
   const routeOffer = routeServiceRequest ? routeState.offer : null;
+  const cachedServiceRequest =
+    !routeServiceRequest && serviceRequestId
+      ? getCachedProviderServiceRequest(serviceRequestId)
+      : null;
 
-  const [serviceRequest, setServiceRequest] = useState(routeServiceRequest);
+  const initialServiceRequest = routeServiceRequest || cachedServiceRequest || null;
+
+  const [serviceRequest, setServiceRequest] = useState(initialServiceRequest);
   const [offer, setOffer] = useState(routeOffer || null);
-  const [loadingContext, setLoadingContext] = useState(!(routeServiceRequest && routeOffer));
+  const [loadingContext, setLoadingContext] = useState(!(initialServiceRequest && routeOffer));
   const [contextError, setContextError] = useState("");
   const [form, setForm] = useState({
     negotiatedPrice: "",
@@ -106,14 +91,6 @@ const ProviderCreatePrivateOfferPage = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const loadServiceRequestFromAvailable = useCallback(async () => {
-    const res = await getAvailableServiceRequests({ limit: 100, offset: 0 });
-    const payload = res?.data ?? res ?? [];
-    const list = Array.isArray(payload?.data) ? payload.data : payload;
-    const normalized = (Array.isArray(list) ? list : []).map(normalizeServiceRequest);
-    return normalized.find((sr) => `${sr.id}` === `${serviceRequestId}`) || null;
-  }, [serviceRequestId]);
-
   const fetchContext = useCallback(async () => {
     if (!serviceRequestId || !offerId) {
       setContextError("Missing service request or offer information.");
@@ -126,8 +103,13 @@ const ProviderCreatePrivateOfferPage = () => {
     try {
       let sr = routeServiceRequest || serviceRequest;
       if (!sr) {
-        sr = await loadServiceRequestFromAvailable();
-        setServiceRequest(sr);
+        sr = await fetchProviderServiceRequestById({
+          serviceRequestId,
+          offerId,
+          limit: 200,
+          offset: 0,
+        });
+        setServiceRequest(sr || null);
       }
 
       let offerData = routeOffer || offer;
@@ -141,17 +123,20 @@ const ProviderCreatePrivateOfferPage = () => {
         setContextError("Request not found or no longer available.");
       }
     } catch (err) {
+      const status = err?.response?.status;
       const msg =
-        err?.response?.data?.detail ||
-        err?.message ||
-        "Could not load the related service request or offer.";
+        status === 401 || status === 403
+          ? "You are not allowed"
+          : err?.response?.data?.detail ||
+            err?.message ||
+            "Could not load the related service request or offer.";
       setContextError(msg);
       setServiceRequest(null);
       setOffer(null);
     } finally {
       setLoadingContext(false);
     }
-  }, [offer, offerId, loadServiceRequestFromAvailable, routeOffer, routeServiceRequest, serviceRequest, serviceRequestId]);
+  }, [offer, offerId, routeOffer, routeServiceRequest, serviceRequest, serviceRequestId]);
 
   useEffect(() => {
     fetchContext();
@@ -173,15 +158,16 @@ const ProviderCreatePrivateOfferPage = () => {
         seller_documentation: form.sellerDocumentation,
         internal_notes: form.internalNotes || null,
       };
-      const res = await createPrivateOffer(offerId, serviceRequestId, payload);
+      const res = await privateOfferApi.createPrivateOffer(offerId, serviceRequestId, payload);
       const data = res?.data ?? res;
       const newId = data?.id || data?.private_offer_id || null;
-      setSuccessMessage("Private offer created successfully.");
-      if (newId) {
-        navigate(`/provider/private-offers/${newId}`);
-      } else {
-        navigate("/provider/private-offers");
-      }
+      const message = newId
+        ? `Private offer #${newId} created successfully.`
+        : "Private offer created successfully.";
+      setSuccessMessage(message);
+      navigate("/provider/private-offers", {
+        state: { successMessage: message },
+      });
     } catch (err) {
       const msg =
         err?.response?.data?.detail ||
@@ -300,7 +286,7 @@ const ProviderCreatePrivateOfferPage = () => {
               </p>
               <div className="grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
                 <span>Buyer incoterm: {(serviceRequest?.incotermBuyer || "").toUpperCase()}</span>
-                <span>Destination: {destinationFor(serviceRequest)}</span>
+                <span>Destination: {destinationForServiceRequest(serviceRequest)}</span>
                 <span>
                   Buyer: {serviceRequest?.contactName || serviceRequest?.contactEmail || "N/A"}
                 </span>
