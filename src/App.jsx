@@ -19,7 +19,6 @@ import useAuth from "./hooks/useAuth";
 import BuyerLayout from "./components/layout/BuyerLayout";
 import SellerLayout from "./components/layout/SellerLayout";
 import ProviderLayout from "./components/layout/ProviderLayout";
-import SellerShell from "./components/layout/SellerShell";
 import AdminOffersPage from "./pages/admin/AdminOffersPage";
 import AdminOfferDetailPage from "./pages/admin/AdminOfferDetailPage";
 import ProviderServiceRequestsPage from "./pages/provider/ServiceRequestsPage";
@@ -132,9 +131,9 @@ export default function App() {
         path="/seller/home"
         element={
           <RequireAuth allowedRoles={["SELLER"]}>
-            <SellerShell>
+            <SellerLayout>
               <SellerHome />
-            </SellerShell>
+            </SellerLayout>
           </RequireAuth>
         }
       />

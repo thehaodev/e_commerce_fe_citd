@@ -14,3 +14,8 @@
 .animate-fade-up {
   animation: fade-up 0.7s ease-out forwards;
 }
+
+/* Prevent accidental double headers stacking on pages that wrap layouts twice */
+.app-header + .app-header {
+  display: none;
+}

@@ -140,7 +140,7 @@ const AppHeader = () => {
 
   return (
     <header
-      className={`sticky top-0 z-30 bg-white/90 backdrop-blur shadow-sm border-b ${variant.headerBorder}`}
+      className={`app-header sticky top-0 z-30 bg-white/90 backdrop-blur shadow-sm border-b ${variant.headerBorder}`}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
         <div className="flex items-center gap-3">
@@ -247,7 +247,7 @@ const AppHeader = () => {
             )}
           </div>
 
-          <div className="relative">
+          <div className="relative z-30 pointer-events-auto">
             <button
               onClick={() => setShowProfile((prev) => !prev)}
               className={`flex items-center gap-2 rounded-full border bg-white px-2.5 py-1.5 shadow-sm transition ${variant.iconButtonAccent}`}
