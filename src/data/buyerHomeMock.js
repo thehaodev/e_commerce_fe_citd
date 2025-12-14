@@ -2,6 +2,7 @@ export const navLinks = [
   { label: "Home", to: "/buyer/home" },
   { label: "Offer", to: "/buyer/home" },
   { label: "Request", to: "/buyer/service-requests" },
+  { label: "My Proposals", to: "/buyer/proposals" },
 ];
 
 export const notifications = [

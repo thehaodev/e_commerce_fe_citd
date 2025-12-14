@@ -31,6 +31,8 @@ import ProviderProposalsPage from "./pages/provider/ProviderProposalsPage";
 import ProviderProposalDetailPage from "./pages/provider/ProviderProposalDetailPage";
 import ProviderProposalCreatePage from "./pages/provider/ProviderProposalCreatePage";
 import BuyerProposalsForServiceRequestPage from "./pages/buyer/BuyerProposalsForServiceRequestPage";
+import BuyerMyProposalsPage from "./pages/buyer/BuyerMyProposalsPage";
+import BuyerProposalDetailPage from "./pages/buyer/BuyerProposalDetailPage";
 
 export default function App() {
   const { initAuth } = useAuth();
@@ -102,6 +104,26 @@ export default function App() {
           <RequireAuth allowedRoles={["BUYER"]}>
             <BuyerLayout>
               <BuyerProposalsForServiceRequestPage />
+            </BuyerLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/buyer/proposals"
+        element={
+          <RequireAuth allowedRoles={["BUYER"]}>
+            <BuyerLayout>
+              <BuyerMyProposalsPage />
+            </BuyerLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/buyer/proposals/:proposalId"
+        element={
+          <RequireAuth allowedRoles={["BUYER"]}>
+            <BuyerLayout>
+              <BuyerProposalDetailPage />
             </BuyerLayout>
           </RequireAuth>
         }
