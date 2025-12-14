@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { FiAlertCircle, FiArrowLeft, FiExternalLink } from "react-icons/fi";
 import { proposalApi } from "../../api/proposalsApi";
 
@@ -13,6 +13,7 @@ const normalizeProposal = (item) => ({
   extraCharges: item?.extra_charges ?? null,
   leadTime: item?.lead_time ?? null,
   eta: item?.eta || "",
+  privateOfferId: item?.private_offer_id || item?.privateOfferId || "",
   serviceConditions: item?.service_conditions || "",
   providerNotes: item?.provider_notes || "",
   createdAt: item?.created_at || "",
@@ -35,6 +36,13 @@ const StatusBadge = ({ status }) => (
   >
     {status || "UNKNOWN"}
   </span>
+);
+
+const DetailItem = ({ label, value }) => (
+  <div className="rounded-xl border border-amber-50 bg-amber-50/40 px-4 py-3">
+    <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">{label}</p>
+    <p className="text-base font-semibold text-gray-900">{value ?? "N/A"}</p>
+  </div>
 );
 
 const formatDate = (value) => {
@@ -86,28 +94,32 @@ const BuyerProposalDetailPage = () => {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 space-y-6">
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => navigate("/buyer/proposals")}
-          className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-white px-3 py-2 text-sm font-semibold text-amber-800 shadow-sm hover:border-amber-300"
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link
+          to="/buyer/proposals"
+          className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-white px-3 py-2 text-sm font-semibold text-amber-800 shadow-sm transition hover:border-amber-300"
         >
           <FiArrowLeft className="h-4 w-4" />
-          Back
-        </button>
+          Back to proposals
+        </Link>
         <span className="text-xs font-semibold uppercase tracking-wide text-amber-700">
           Proposal detail
         </span>
       </div>
 
       {loading ? (
-        <div className="space-y-3">
-          <div className="h-10 w-48 rounded bg-amber-100 animate-pulse" />
-          <div className="h-24 rounded-2xl border border-amber-50 bg-amber-50 animate-pulse" />
-          <div className="grid gap-3 md:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, idx) => (
-              <div key={idx} className="h-28 rounded-2xl border border-amber-50 bg-amber-50 animate-pulse" />
-            ))}
+        <div className="space-y-4">
+          <div className="h-10 w-56 animate-pulse rounded bg-amber-100" />
+          <div className="rounded-2xl border border-amber-50 bg-white p-4 shadow-sm">
+            <div className="h-6 w-40 animate-pulse rounded bg-amber-100" />
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="h-20 animate-pulse rounded-xl border border-amber-50 bg-amber-50"
+                />
+              ))}
+            </div>
           </div>
         </div>
       ) : error ? (
@@ -125,73 +137,119 @@ const BuyerProposalDetailPage = () => {
             </button>
           </div>
         </div>
-      ) : !proposal ? null : (
-        <>
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold text-gray-900">
-                Proposal #{proposal.id}
-              </h1>
-              <StatusBadge status={proposal.status} />
+      ) : !proposal ? (
+        <div className="rounded-2xl border border-amber-100 bg-white px-6 py-10 text-center shadow-sm">
+          <p className="mb-2 text-lg font-semibold text-slate-900">Proposal not found.</p>
+          <p className="text-sm text-slate-600">
+            We could not find details for this proposal. It may have been removed or is unavailable.
+          </p>
+          <div className="mt-4 flex justify-center gap-3">
+            <button
+              type="button"
+              onClick={fetchProposal}
+              className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-800 shadow-sm transition hover:border-amber-300"
+            >
+              Retry
+            </button>
+            <Link
+              to="/buyer/proposals"
+              className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600"
+            >
+              Back to My Proposals
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-amber-100 bg-white shadow-sm">
+          <div className="flex flex-col gap-2 border-b border-amber-50 px-4 py-4 md:flex-row md:items-center md:justify-between">
+            <div className="min-w-0 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Proposal Details</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-3xl font-bold text-gray-900">Proposal #{proposal.id || "N/A"}</h1>
+                <StatusBadge status={proposal.status} />
+              </div>
+              <div className="flex flex-wrap gap-2 text-sm text-gray-600">
+                {proposal.offerId ? (
+                  <span className="rounded-full bg-amber-50 px-3 py-1 font-semibold text-amber-800">
+                    Offer #{proposal.offerId}
+                  </span>
+                ) : null}
+                {proposal.privateOfferId ? (
+                  <span className="rounded-full bg-amber-50 px-3 py-1 font-semibold text-amber-800">
+                    Private offer #{proposal.privateOfferId}
+                  </span>
+                ) : null}
+                {proposal.serviceRequestId ? (
+                  <span className="rounded-full bg-amber-50 px-3 py-1 font-semibold text-amber-800">
+                    Service request #{proposal.serviceRequestId}
+                  </span>
+                ) : null}
+              </div>
             </div>
-            <p className="text-sm text-gray-600">
-              Offer #{proposal.offerId || "N/A"} • Service Request #{proposal.serviceRequestId || "N/A"}
-            </p>
+            <div className="text-right">
+              <p className="text-xs font-semibold text-amber-700">Updated</p>
+              <p className="text-sm text-gray-700">{formatDate(proposal.updatedAt)}</p>
+              <p className="text-xs text-gray-500">Created {formatDate(proposal.createdAt)}</p>
+            </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-2xl border border-amber-100 bg-amber-50/70 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Total cost</p>
+          <div className="grid gap-4 p-4 md:grid-cols-3">
+            <div className="rounded-xl border border-amber-50 bg-amber-50/50 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Costs</p>
               <p className="text-2xl font-bold text-gray-900">{proposal.totalCost ?? "N/A"}</p>
               <p className="text-xs text-gray-600">Service fee: {proposal.serviceFee ?? "N/A"}</p>
               <p className="text-xs text-gray-600">Extra charges: {proposal.extraCharges ?? "N/A"}</p>
             </div>
-            <div className="rounded-2xl border border-amber-100 bg-amber-50/70 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Lead / ETA</p>
-              <p className="text-lg font-bold text-gray-900">
-                Lead time: {proposal.leadTime ?? "N/A"}
+            <DetailItem label="Lead time" value={proposal.leadTime ?? "N/A"} />
+            <DetailItem label="ETA" value={proposal.eta || "N/A"} />
+            <DetailItem label="Status" value={proposal.status || "UNKNOWN"} />
+            <DetailItem label="Proposal ID" value={proposal.id ? `#${proposal.id}` : "N/A"} />
+            <DetailItem label="Private offer ID" value={proposal.privateOfferId || "N/A"} />
+            <DetailItem label="Offer ID" value={proposal.offerId || "N/A"} />
+            <DetailItem label="Service request ID" value={proposal.serviceRequestId || "N/A"} />
+            <DetailItem label="Created at" value={formatDate(proposal.createdAt)} />
+            <DetailItem label="Updated at" value={formatDate(proposal.updatedAt)} />
+          </div>
+
+          <div className="grid gap-4 border-t border-amber-50 px-4 py-4 md:grid-cols-2">
+            <div className="rounded-xl border border-amber-50 bg-amber-50/30 px-4 py-3">
+              <p className="text-sm font-semibold text-gray-900">Service conditions</p>
+              <p className="text-sm text-gray-700 whitespace-pre-line">
+                {proposal.serviceConditions || "No service conditions were provided."}
               </p>
-              <p className="text-sm text-gray-700">ETA: {proposal.eta || "N/A"}</p>
             </div>
-            <div className="rounded-2xl border border-amber-100 bg-amber-50/70 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Timestamps</p>
-              <p className="text-sm font-semibold text-gray-900">Created</p>
-              <p className="text-sm text-gray-700">{formatDate(proposal.createdAt)}</p>
-              <p className="text-sm font-semibold text-gray-900 mt-2">Updated</p>
-              <p className="text-sm text-gray-700">{formatDate(proposal.updatedAt)}</p>
+            <div className="rounded-xl border border-amber-50 bg-amber-50/30 px-4 py-3">
+              <p className="text-sm font-semibold text-gray-900">Provider notes</p>
+              <p className="text-sm text-gray-700 whitespace-pre-line">
+                {proposal.providerNotes || "No provider notes were provided."}
+              </p>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-amber-100 bg-white shadow-sm">
-            <div className="border-b border-amber-50 px-4 py-3">
-              <p className="text-sm font-semibold text-gray-900">Notes</p>
-              <p className="text-sm text-gray-700">
-                {proposal.providerNotes || proposal.serviceConditions || "No provider notes provided."}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3 px-4 py-3">
-              <button
-                type="button"
-                onClick={() => navigate(`/buyer/service-requests/${proposal.serviceRequestId}/proposals`)}
-                disabled={awardDisabled}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition ${
-                  awardDisabled
-                    ? "cursor-not-allowed bg-slate-100 text-slate-500"
-                    : "bg-amber-500 text-white hover:bg-amber-600"
-                }`}
-              >
-                {proposal.status === "AWARDED" ? "Awarded" : "Go to Award"}
-                <FiExternalLink className="h-4 w-4" />
-              </button>
-              <Link
-                to="/buyer/proposals"
-                className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-800 shadow-sm transition hover:border-amber-300"
-              >
-                Back to My Proposals
-              </Link>
-            </div>
+          <div className="flex flex-wrap gap-3 border-t border-amber-50 px-4 py-4">
+            <button
+              type="button"
+              onClick={() =>
+                navigate(`/buyer/service-requests/${proposal.serviceRequestId}/proposals`)
+              }
+              disabled={awardDisabled}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition ${
+                awardDisabled
+                  ? "cursor-not-allowed bg-slate-100 text-slate-500"
+                  : "bg-amber-500 text-white hover:bg-amber-600"
+              }`}
+            >
+              {proposal.status === "AWARDED" ? "Awarded" : "Go to Award"}
+              <FiExternalLink className="h-4 w-4" />
+            </button>
+            <Link
+              to="/buyer/proposals"
+              className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-800 shadow-sm transition hover:border-amber-300"
+            >
+              Back to My Proposals
+            </Link>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

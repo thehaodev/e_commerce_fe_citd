@@ -60,20 +60,25 @@ const AdminLayout = ({ breadcrumb = ["Admin"], pageTitle = "Admin", children }) 
           </nav>
         </div>
         <div className="px-6 py-4 border-t border-slate-100">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-slate-900 text-white flex items-center justify-center text-sm font-semibold">
+          <div className="flex items-center gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <div className="h-10 w-10 shrink-0 rounded-full bg-slate-900 text-white flex items-center justify-center text-sm font-semibold">
                 {userInitial}
               </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-900 leading-tight">{userName}</p>
-                <p className="text-xs text-slate-500">Administrator</p>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-slate-900 leading-tight truncate">{userName}</p>
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <span className="truncate">{user?.email || "Administrator"}</span>
+                  <span className="inline-flex shrink-0 items-center rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-[11px] uppercase tracking-wide text-slate-700">
+                    Admin
+                  </span>
+                </div>
               </div>
             </div>
             <button
               type="button"
               onClick={logout}
-              className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+              className="inline-flex shrink-0 items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50"
             >
               <FiLogOut className="h-4 w-4" />
               Logout
@@ -115,4 +120,3 @@ const AdminLayout = ({ breadcrumb = ["Admin"], pageTitle = "Admin", children }) 
 };
 
 export default AdminLayout;
-

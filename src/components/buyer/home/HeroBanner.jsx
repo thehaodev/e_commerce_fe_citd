@@ -1,20 +1,82 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { heroSlides } from "../../../data/buyerHomeMock";
 
 const HeroBanner = () => {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   const total = heroSlides.length;
+  const autoplayRef = useRef(null);
+  const resumeTimeoutRef = useRef(null);
+  const AUTOPLAY_INTERVAL = 4500;
+  const RESUME_DELAY = 6500;
+
+  const clearAutoplay = () => {
+    if (autoplayRef.current) {
+      clearInterval(autoplayRef.current);
+      autoplayRef.current = null;
+    }
+  };
+
+  const clearResumeTimeout = () => {
+    if (resumeTimeoutRef.current) {
+      clearTimeout(resumeTimeoutRef.current);
+      resumeTimeoutRef.current = null;
+    }
+  };
+
+  const pauseAutoplay = () => {
+    setIsPaused(true);
+    clearAutoplay();
+    clearResumeTimeout();
+  };
+
+  const resumeAutoplay = () => {
+    clearResumeTimeout();
+    resumeTimeoutRef.current = setTimeout(() => {
+      setIsPaused(false);
+    }, RESUME_DELAY);
+  };
 
   const handlePrev = () => {
+    pauseAutoplay();
     setActiveIndex((prev) => (prev - 1 + total) % total);
+    resumeAutoplay();
   };
 
   const handleNext = () => {
+    pauseAutoplay();
     setActiveIndex((prev) => (prev + 1) % total);
+    resumeAutoplay();
   };
 
+  const handleDotClick = (idx) => {
+    pauseAutoplay();
+    setActiveIndex(idx);
+    resumeAutoplay();
+  };
+
+  useEffect(() => {
+    if (isPaused || total <= 1) return undefined;
+    autoplayRef.current = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % total);
+    }, AUTOPLAY_INTERVAL);
+    return clearAutoplay;
+  }, [isPaused, total]);
+
+  useEffect(
+    () => () => {
+      clearAutoplay();
+      clearResumeTimeout();
+    },
+    []
+  );
+
   return (
-    <section className="relative mx-auto mt-4 max-w-7xl px-4">
+    <section
+      className="relative mx-auto mt-4 max-w-7xl px-4"
+      onMouseEnter={pauseAutoplay}
+      onMouseLeave={resumeAutoplay}
+    >
       <div className="relative overflow-hidden rounded-3xl border border-amber-50 bg-gradient-to-br from-amber-50 via-white to-yellow-50 shadow-lg">
         {heroSlides.map((slide, index) => (
           <div
@@ -61,7 +123,7 @@ const HeroBanner = () => {
             {heroSlides.map((slide, idx) => (
               <button
                 key={slide.id}
-                onClick={() => setActiveIndex(idx)}
+                onClick={() => handleDotClick(idx)}
                 className={`h-2.5 rounded-full transition ${
                   idx === activeIndex
                     ? "w-8 bg-amber-500"

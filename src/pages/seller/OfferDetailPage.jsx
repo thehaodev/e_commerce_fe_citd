@@ -102,24 +102,24 @@ const OfferDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="border-b bg-white/90 backdrop-blur px-6 py-4 flex items-center gap-4">
-        <button
-          type="button"
-          onClick={() => navigate("/seller/offers")}
-          className="flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-amber-700"
-        >
-          <FiArrowLeft /> Back to My Offers
-        </button>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-amber-600">
-            Offer Detail
-          </p>
-          <h1 className="text-2xl font-bold text-slate-900">{offer?.product_name || "N/A"}</h1>
-        </div>
-        {offer?.status && <StatusBadge status={offer.status} className="ml-auto" />}
-      </header>
-
       <main className="container mx-auto px-6 py-8 space-y-6">
+        <div className="flex flex-col gap-3 rounded-2xl bg-white px-6 py-5 shadow-sm border border-slate-200 md:flex-row md:items-center md:gap-4">
+          <button
+            type="button"
+            onClick={() => navigate("/seller/offers")}
+            className="flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-amber-700"
+          >
+            <FiArrowLeft /> Back to My Offers
+          </button>
+          <div className="flex-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-600">
+              Offer Detail
+            </p>
+            <h1 className="text-2xl font-bold text-slate-900">{offer?.product_name || "N/A"}</h1>
+          </div>
+          {offer?.status && <StatusBadge status={offer.status} className="md:ml-auto" />}
+        </div>
+
         {loading ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm animate-pulse space-y-4">
             <div className="h-6 w-64 bg-slate-200 rounded" />
