@@ -89,21 +89,21 @@ const MyOffersPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="border-b bg-white/90 backdrop-blur px-6 py-4 flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-amber-600">Seller</p>
-          <h1 className="text-2xl font-bold text-slate-900">My Offers</h1>
-        </div>
-        <button
-          type="button"
-          onClick={() => navigate("/seller/offers/new")}
-          className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-4 py-2.5 text-sm font-semibold text-slate-900 shadow hover:bg-amber-600"
-        >
-          <FiPlus /> Create Offer
-        </button>
-      </header>
-
       <main className="container mx-auto px-6 py-8 space-y-6">
+        <div className="flex flex-col gap-3 rounded-2xl bg-white px-6 py-5 shadow-sm md:flex-row md:items-center md:justify-between border border-slate-200">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-600">Seller</p>
+            <h1 className="text-2xl font-bold text-slate-900">My Offers</h1>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate("/seller/offers/new")}
+            className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-4 py-2.5 text-sm font-semibold text-slate-900 shadow hover:bg-amber-600"
+          >
+            <FiPlus /> Create Offer
+          </button>
+        </div>
+
         <div className="flex flex-wrap items-center justify-between gap-4">
           <FilterBar
             status={status}
