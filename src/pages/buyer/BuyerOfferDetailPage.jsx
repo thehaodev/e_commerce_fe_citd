@@ -8,6 +8,7 @@ import {
   FiDollarSign,
   FiGlobe,
   FiHome,
+  FiInfo,
   FiLoader,
   FiMapPin,
   FiPackage,
@@ -53,24 +54,41 @@ const InterestBadge = ({ interested }) =>
 const ToastStack = ({ toasts, onDismiss }) => {
   if (!toasts?.length) return null;
 
+  const variants = {
+    success: {
+      container: "border-emerald-200 bg-emerald-50 text-emerald-800",
+      iconColor: "text-emerald-600",
+      Icon: FiCheckCircle,
+    },
+    error: {
+      container: "border-rose-200 bg-rose-50 text-rose-800",
+      iconColor: "text-rose-600",
+      Icon: FiAlertCircle,
+    },
+  };
+
   return (
     <div className="fixed top-4 right-4 z-50 space-y-2">
-      {toasts.map((toast) => (
-        <div
-          key={toast.id}
-          className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 shadow-lg"
-        >
-          <FiCheckCircle className="h-5 w-5" />
-          <span className="flex-1">{toast.message}</span>
-          <button
-            type="button"
-            onClick={() => onDismiss?.(toast.id)}
-            className="text-emerald-500 hover:text-emerald-700"
+      {toasts.map((toast) => {
+        const variant = variants[toast.variant] || variants.success;
+        const Icon = variant.Icon;
+        return (
+          <div
+            key={toast.id}
+            className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-semibold shadow-lg ${variant.container}`}
           >
-            <FiX className="h-4 w-4" />
-          </button>
-        </div>
-      ))}
+            <Icon className={`h-5 w-5 ${variant.iconColor}`} />
+            <span className="flex-1">{toast.message}</span>
+            <button
+              type="button"
+              onClick={() => onDismiss?.(toast.id)}
+              className="text-sm font-bold"
+            >
+              <FiX className="h-4 w-4" />
+            </button>
+          </div>
+        );
+      })}
     </div>
   );
 };
@@ -85,14 +103,15 @@ const BuyerOfferDetailPage = () => {
 
   const [interestChecked, setInterestChecked] = useState(false);
   const [interestLoading, setInterestLoading] = useState(false);
+  const [expressInterestLoading, setExpressInterestLoading] = useState(false);
   const [isInterested, setIsInterested] = useState(false);
   const [interestError, setInterestError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
   const [toasts, setToasts] = useState([]);
 
-  const showToast = useCallback((message) => {
+  const showToast = useCallback((message, variant = "success") => {
     const id = `${Date.now()}-${Math.random()}`;
-    setToasts((prev) => [...prev, { id, message }]);
+    setToasts((prev) => [...prev, { id, message, variant }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id));
     }, 3200);
@@ -154,14 +173,15 @@ const BuyerOfferDetailPage = () => {
 
   const handleExpressInterest = async () => {
     if (!offerId || isInterested) return;
-    setInterestLoading(true);
+    setExpressInterestLoading(true);
     setInterestError("");
     setActionMessage("");
     try {
       await createBuyerInterest(offerId);
       setIsInterested(true);
       setActionMessage("You have expressed interest in this offer.");
-      showToast("Interest expressed successfully.");
+      showToast("Interest sent successfully. You can now create a Service Request.");
+      setInterestChecked(true);
     } catch (err) {
       const msg =
         err?.response?.data?.message ||
@@ -169,9 +189,9 @@ const BuyerOfferDetailPage = () => {
         err?.message ||
         "Failed to express interest. Please try again.";
       setInterestError(msg);
+      showToast(msg, "error");
     } finally {
-      setInterestChecked(true);
-      setInterestLoading(false);
+      setExpressInterestLoading(false);
     }
   };
 
@@ -184,7 +204,7 @@ const BuyerOfferDetailPage = () => {
 
   const readyDate = useMemo(() => formatDate(offer?.cargo_ready_date), [offer?.cargo_ready_date]);
 
-  const actionDisabled = interestLoading || !offer;
+  const actionDisabled = interestLoading || expressInterestLoading || !offer;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
@@ -203,6 +223,18 @@ const BuyerOfferDetailPage = () => {
           Offer Detail
         </span>
       </div>
+
+      {!isInterested && interestChecked && (
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <FiInfo className="mt-0.5 h-4 w-4 text-amber-700" />
+          <div className="space-y-1">
+            <p className="font-semibold">To request service for this offer, please click Express Interest first.</p>
+            <p className="text-xs text-amber-700">
+              Once you express interest, the service request form will unlock on this page.
+            </p>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="rounded-3xl border border-amber-100 bg-white p-6 shadow-sm">
@@ -275,13 +307,13 @@ const BuyerOfferDetailPage = () => {
                     type="button"
                     onClick={handleExpressInterest}
                     disabled={actionDisabled || isInterested}
-                    className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition ${
+                    className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition ${expressInterestLoading ? "cursor-wait" : ""} ${
                       isInterested
                         ? "bg-slate-100 text-slate-500 cursor-not-allowed"
                         : "bg-amber-500 text-black hover:bg-amber-600"
                     } ${actionDisabled ? "opacity-70 cursor-not-allowed" : ""}`}
                   >
-                    {interestLoading ? (
+                    {expressInterestLoading ? (
                       <>
                         <FiLoader className="h-4 w-4 animate-spin" />
                         Processing...
@@ -307,8 +339,8 @@ const BuyerOfferDetailPage = () => {
                     Send Service Request
                   </button>
                   {!isInterested && (
-                    <p className="text-xs text-slate-500">
-                      Express interest to unlock service requests for this offer.
+                    <p className="text-xs text-slate-500 text-right">
+                      Express interest to enable the service request form for this offer.
                     </p>
                   )}
                 </div>
@@ -316,25 +348,41 @@ const BuyerOfferDetailPage = () => {
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Cargo Ready Date" value={<span className="flex items-center gap-2"><FiCalendar className="h-4 w-4 text-amber-600" />{readyDate}</span>} />
-            <Field label="Port of Loading" value={<span className="flex items-center gap-2"><FiMapPin className="h-4 w-4 text-amber-600" />{offer?.port_of_loading || "Not provided"}</span>} />
-            <Field label="Payment Terms" value={offer?.payment_terms} />
-            <Field label="Seller ID" value={offer?.seller_id} />
-          </div>
+          {isInterested ? (
+            <>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Cargo Ready Date" value={<span className="flex items-center gap-2"><FiCalendar className="h-4 w-4 text-amber-600" />{readyDate}</span>} />
+                <Field label="Port of Loading" value={<span className="flex items-center gap-2"><FiMapPin className="h-4 w-4 text-amber-600" />{offer?.port_of_loading || "Not provided"}</span>} />
+                <Field label="Payment Terms" value={offer?.payment_terms} />
+                <Field label="Seller ID" value={offer?.seller_id} />
+              </div>
 
-          <div className="rounded-3xl border border-amber-100 bg-white p-6 shadow-sm space-y-4">
-            <div className="flex items-center gap-2 text-amber-800">
-              <FiHome className="h-5 w-5" />
-              <h2 className="text-lg font-bold">Offer logistics</h2>
+              <div className="rounded-3xl border border-amber-100 bg-white p-6 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 text-amber-800">
+                  <FiHome className="h-5 w-5" />
+                  <h2 className="text-lg font-bold">Offer logistics</h2>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Incoterm (Seller)" value={sellerIncoterm} />
+                  <Field label="Status" value={offer?.status} />
+                  <Field label="Created At" value={formatDate(offer?.created_at)} />
+                  <Field label="Updated At" value={formatDate(offer?.updated_at)} />
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="rounded-3xl border border-amber-100 bg-white p-6 shadow-sm">
+              <div className="flex items-start gap-3 text-amber-800">
+                <FiAlertCircle className="mt-0.5 h-5 w-5" />
+                <div className="space-y-1">
+                  <h2 className="text-lg font-bold">Details locked</h2>
+                  <p className="text-sm text-gray-700">
+                    Basic offer info is shown above. Express interest to view full logistics, seller details, and send a service request.
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Incoterm (Seller)" value={sellerIncoterm} />
-              <Field label="Status" value={offer?.status} />
-              <Field label="Created At" value={formatDate(offer?.created_at)} />
-              <Field label="Updated At" value={formatDate(offer?.updated_at)} />
-            </div>
-          </div>
+          )}
         </>
       )}
     </div>

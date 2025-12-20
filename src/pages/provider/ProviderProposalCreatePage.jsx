@@ -10,6 +10,7 @@ import {
   FiLayers,
   FiLoader,
   FiTag,
+  FiX,
 } from "react-icons/fi";
 import { getOfferById } from "../../api/offerApi";
 import { privateOfferApi } from "../../api/privateOffersApi";
@@ -32,6 +33,13 @@ const normalizePrivateOffer = (item = {}) => ({
   sellerDocumentation: item?.seller_documentation || "",
   internalNotes: item?.internal_notes ?? "",
   status: item?.status || "",
+  sellerConfirmationStatus:
+    item?.seller_confirmation_status || item?.sellerConfirmationStatus || "PENDING",
+  sellerConfirmedAt: item?.seller_confirmed_at || item?.sellerConfirmedAt || null,
+  sellerConfirmedBy: item?.seller_confirmed_by || item?.sellerConfirmedBy || null,
+  sellerConfirmationChannel:
+    item?.seller_confirmation_channel || item?.sellerConfirmationChannel || null,
+  sellerConfirmationNote: item?.seller_confirmation_note || item?.sellerConfirmationNote || null,
   createdAt: item?.created_at || item?.createdAt || "",
   updatedAt: item?.updated_at || item?.updatedAt || "",
 });
@@ -98,11 +106,26 @@ const ProviderProposalCreatePage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [toasts, setToasts] = useState([]);
+
+  const showToast = useCallback((message, tone = "success") => {
+    const id = `${Date.now()}-${Math.random()}`;
+    setToasts((prev) => [...prev, { id, message, tone }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, 3500);
+  }, []);
+
+  const dismissToast = useCallback((id) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  }, []);
 
   const offerLabel = useMemo(() => {
     if (!offer) return "Offer";
     return offer.product_name || `Offer ${offer.id || ""}` || "Offer";
   }, [offer]);
+
+  const isSellerConfirmed = privateOffer?.sellerConfirmationStatus === "CONFIRMED";
 
   const onBlurMoney = (field) => () => {
     const value = form[field];
@@ -174,6 +197,8 @@ const ProviderProposalCreatePage = () => {
     if (form.providerNotes && form.providerNotes.length > 500) return false;
     return true;
   }, [form]);
+
+  const isSubmitDisabled = submitting || loadingContext || !isFormValuesValid || !isSellerConfirmed;
 
   const fetchContext = useCallback(async () => {
     if (!privateOfferId) {
@@ -279,6 +304,9 @@ const ProviderProposalCreatePage = () => {
           ? "You are not allowed"
           : err?.response?.data?.detail || err?.message || "Failed to create proposal.";
       setSubmitError(msg);
+      if (status === 400 || status === 409) {
+        showToast(msg, "error");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -287,6 +315,7 @@ const ProviderProposalCreatePage = () => {
   if (!privateOfferId) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-8">
+        <ToastStack toasts={toasts} onDismiss={dismissToast} />
         <div className="flex items-center gap-3 mb-4">
           <button
             type="button"
@@ -309,6 +338,7 @@ const ProviderProposalCreatePage = () => {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 space-y-6">
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -415,6 +445,19 @@ const ProviderProposalCreatePage = () => {
           </div>
         )}
       </div>
+
+      {!loadingContext && !contextError && privateOffer && !isSellerConfirmed ? (
+        <div className="flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <FiAlertCircle className="h-4 w-4 mt-0.5" />
+          <div className="space-y-0.5">
+            <p className="font-semibold">Seller confirmation required.</p>
+            <p className="text-xs text-amber-700">
+              Seller confirmation (offline) is required before sending a proposal for this private
+              offer.
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       <form
         onSubmit={handleSubmit}
@@ -541,9 +584,9 @@ const ProviderProposalCreatePage = () => {
           </p>
           <button
             type="submit"
-            disabled={submitting || loadingContext || !isFormValuesValid}
+            disabled={isSubmitDisabled}
             className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-2 text-sm font-semibold shadow-sm transition ${
-              submitting || loadingContext
+              isSubmitDisabled
                 ? "bg-slate-200 text-slate-500 cursor-not-allowed"
                 : "bg-emerald-600 text-white hover:bg-emerald-700"
             }`}
@@ -559,6 +602,38 @@ const ProviderProposalCreatePage = () => {
           </button>
         </div>
       </form>
+    </div>
+  );
+};
+
+const ToastStack = ({ toasts, onDismiss }) => {
+  if (!toasts?.length) return null;
+
+  return (
+    <div className="fixed top-4 right-4 z-50 space-y-2">
+      {toasts.map((toast) => {
+        const tone = toast.tone === "error" ? "rose" : "emerald";
+        const border = tone === "rose" ? "border-rose-200" : "border-emerald-200";
+        const bg = tone === "rose" ? "bg-rose-50" : "bg-emerald-50";
+        const text = tone === "rose" ? "text-rose-800" : "text-emerald-800";
+
+        return (
+          <div
+            key={toast.id}
+            className={`flex items-center gap-3 rounded-xl border ${border} ${bg} px-4 py-3 text-sm font-semibold ${text} shadow-lg`}
+          >
+            <FiCheckCircle className="h-4 w-4" />
+            <span className="flex-1">{toast.message}</span>
+            <button
+              type="button"
+              onClick={() => onDismiss?.(toast.id)}
+              className={`${text} hover:opacity-80`}
+            >
+              <FiX className="h-4 w-4" />
+            </button>
+          </div>
+        );
+      })}
     </div>
   );
 };
