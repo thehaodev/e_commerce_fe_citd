@@ -32,6 +32,7 @@ import ProviderProposalCreatePage from "./pages/provider/ProviderProposalCreateP
 import BuyerProposalsForServiceRequestPage from "./pages/buyer/BuyerProposalsForServiceRequestPage";
 import BuyerMyProposalsPage from "./pages/buyer/BuyerMyProposalsPage";
 import BuyerProposalDetailPage from "./pages/buyer/BuyerProposalDetailPage";
+import ProfilePage from "./pages/profile/ProfilePage";
 
 export default function App() {
   const { initAuth } = useAuth();
@@ -47,6 +48,14 @@ export default function App() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route
+        path="/profile"
+        element={
+          <RequireAuth allowedRoles={["BUYER", "SELLER", "PROVIDER", "ADMIN"]}>
+            <ProfilePage />
+          </RequireAuth>
+        }
+      />
       <Route
         path="/buyer/home"
         element={

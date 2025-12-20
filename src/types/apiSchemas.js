@@ -7,6 +7,25 @@ export const OFFER_STATUSES = ["OPEN", "ACTIVE", "LOCKED", "DELETED"];
 export const SERVICE_REQUEST_STATUSES = ["REQUESTED"];
 
 /**
+ * @typedef {Object} UserProfileResponse
+ * @property {string} id
+ * @property {string} email
+ * @property {"BUYER" | "SELLER" | "PROVIDER" | "ADMIN" | string} role
+ * @property {string | null | undefined} [phone]
+ * @property {string | null | undefined} [full_name]
+ * @property {string | null | undefined} [company_name]
+ * @property {string | null | undefined} [avatar_url]
+ */
+
+/**
+ * @typedef {Object} UserUpdateSelf
+ * @property {string | null | undefined} [full_name]
+ * @property {string | null | undefined} [phone]
+ * @property {string | null | undefined} [company_name]
+ * @property {string | null | undefined} [avatar_url]
+ */
+
+/**
  * @typedef {Object} OfferImageResponse
  * @property {string} id
  * @property {string} url
@@ -42,6 +61,11 @@ export const SERVICE_REQUEST_STATUSES = ["REQUESTED"];
  * @property {string} seller_documentation
  * @property {string | null} internal_notes
  * @property {string} status
+ * @property {"PENDING" | "CONFIRMED" | "REJECTED" | string} [seller_confirmation_status]
+ * @property {string | null} [seller_confirmed_at]
+ * @property {string | null} [seller_confirmed_by]
+ * @property {"EMAIL" | "PHONE" | "ZALO" | "MEETING" | "OTHER" | string | null} [seller_confirmation_channel]
+ * @property {string | null} [seller_confirmation_note]
  * @property {string} created_at
  * @property {string} updated_at
  */
@@ -82,4 +106,22 @@ export const SERVICE_REQUEST_STATUSES = ["REQUESTED"];
  * @property {string | null} contact_email
  * @property {string} created_at
  * @property {string} updated_at
+ */
+
+/**
+ * @typedef {Object} NotificationResponse
+ * @property {string} id
+ * @property {string} user_id
+ * @property {string} title
+ * @property {string} message
+ * @property {string | null | undefined} [entity_type]
+ * @property {string | null | undefined} [entity_id]
+ * @property {boolean} is_read
+ * @property {string} created_at
+ * @property {string | null | undefined} [updated_at]
+ */
+
+/**
+ * @typedef {Object} UnreadCountResponse
+ * @property {number} unread_count
  */

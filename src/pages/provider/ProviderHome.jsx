@@ -20,6 +20,13 @@ const normalizePrivateOffer = (item) => ({
   sellerDocumentation: item?.seller_documentation || "",
   internalNotes: item?.internal_notes ?? "",
   status: item?.status || "",
+  sellerConfirmationStatus:
+    item?.seller_confirmation_status || item?.sellerConfirmationStatus || "PENDING",
+  sellerConfirmedAt: item?.seller_confirmed_at || item?.sellerConfirmedAt || null,
+  sellerConfirmedBy: item?.seller_confirmed_by || item?.sellerConfirmedBy || null,
+  sellerConfirmationChannel:
+    item?.seller_confirmation_channel || item?.sellerConfirmationChannel || null,
+  sellerConfirmationNote: item?.seller_confirmation_note || item?.sellerConfirmationNote || null,
   createdAt: item?.created_at || "",
   updatedAt: item?.updated_at || "",
 });

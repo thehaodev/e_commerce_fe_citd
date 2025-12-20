@@ -1,7 +1,8 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { FiBell, FiLogOut, FiSearch } from "react-icons/fi";
+import { FiLogOut, FiSearch } from "react-icons/fi";
 import useAuth from "../../hooks/useAuth";
+import NotificationsDropdown from "../notifications/NotificationsDropdown";
 
 const navItems = [
   { label: "Dashboard", path: "/admin/dashboard", disabled: true },
@@ -11,6 +12,16 @@ const navItems = [
   { label: "System Settings", path: "/admin/settings", disabled: true },
 ];
 
+const adminNotificationVariant = {
+  badgeClass: "bg-slate-900 text-white",
+  panelBorder: "border-slate-200",
+  panelDivider: "divide-slate-100",
+  notificationDot: "bg-slate-900",
+  notificationHover: "hover:bg-slate-50",
+  actionText: "text-slate-700",
+  iconButtonAccent: "border-slate-200 hover:border-slate-300 hover:text-slate-900",
+};
+
 const AdminLayout = ({ breadcrumb = ["Admin"], pageTitle = "Admin", children }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -19,6 +30,7 @@ const AdminLayout = ({ breadcrumb = ["Admin"], pageTitle = "Admin", children }) 
 
   const userName =
     user?.full_name || user?.company_name || user?.name || user?.email || "Admin User";
+  const userAvatar = user?.avatar_url || user?.avatarUrl;
   const userInitial = (userName?.[0] || "A").toUpperCase();
 
   const breadcrumbLabel = Array.isArray(breadcrumb) ? breadcrumb.join(" / ") : breadcrumb;
@@ -61,20 +73,35 @@ const AdminLayout = ({ breadcrumb = ["Admin"], pageTitle = "Admin", children }) 
         </div>
         <div className="px-6 py-4 border-t border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="h-10 w-10 shrink-0 rounded-full bg-slate-900 text-white flex items-center justify-center text-sm font-semibold">
-                {userInitial}
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-slate-900 leading-tight truncate">{userName}</p>
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <span className="truncate">{user?.email || "Administrator"}</span>
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                {userAvatar ? (
+                  <img
+                    src={userAvatar}
+                    alt={userName}
+                    className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-slate-200"
+                  />
+                ) : (
+                  <div className="h-10 w-10 shrink-0 rounded-full bg-slate-900 text-white flex items-center justify-center text-sm font-semibold">
+                    {userInitial}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 leading-tight truncate">{userName}</p>
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <span className="truncate">{user?.email || "Administrator"}</span>
                   <span className="inline-flex shrink-0 items-center rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-[11px] uppercase tracking-wide text-slate-700">
                     Admin
                   </span>
                 </div>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={() => navigate("/profile")}
+              className="inline-flex shrink-0 items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+            >
+              Profile
+            </button>
             <button
               type="button"
               onClick={logout}
@@ -105,12 +132,7 @@ const AdminLayout = ({ breadcrumb = ["Admin"], pageTitle = "Admin", children }) 
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-10 py-2 text-sm text-slate-800 shadow-inner"
               />
             </div>
-            <button
-              type="button"
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
-            >
-              <FiBell className="h-5 w-5" />
-            </button>
+            <NotificationsDropdown variant={adminNotificationVariant} />
           </div>
         </header>
         <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>

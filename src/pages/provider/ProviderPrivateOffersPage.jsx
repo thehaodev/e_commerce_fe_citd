@@ -19,6 +19,13 @@ const normalizePrivateOffer = (item) => ({
   sellerDocumentation: item?.seller_documentation || "",
   internalNotes: item?.internal_notes ?? "",
   status: item?.status || "",
+  sellerConfirmationStatus:
+    item?.seller_confirmation_status || item?.sellerConfirmationStatus || "PENDING",
+  sellerConfirmedAt: item?.seller_confirmed_at || item?.sellerConfirmedAt || null,
+  sellerConfirmedBy: item?.seller_confirmed_by || item?.sellerConfirmedBy || null,
+  sellerConfirmationChannel:
+    item?.seller_confirmation_channel || item?.sellerConfirmationChannel || null,
+  sellerConfirmationNote: item?.seller_confirmation_note || item?.sellerConfirmationNote || null,
   createdAt: item?.created_at || "",
   updatedAt: item?.updated_at || "",
 });
@@ -36,9 +43,38 @@ const StatusBadge = ({ value }) => (
   </span>
 );
 
+const SellerConfirmationBadge = ({ status }) => {
+  const tone =
+    status === "CONFIRMED"
+      ? "emerald"
+      : status === "REJECTED"
+        ? "rose"
+        : "amber";
+  const label =
+    status === "CONFIRMED"
+      ? "Seller confirmed (offline)"
+      : status === "REJECTED"
+        ? "Seller rejected (offline)"
+        : "Seller confirmation: Pending";
+  const bgClass =
+    tone === "emerald"
+      ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+      : tone === "rose"
+        ? "bg-rose-50 text-rose-700 border-rose-100"
+        : "bg-amber-50 text-amber-800 border-amber-100";
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${bgClass}`}
+    >
+      {label}
+    </span>
+  );
+};
+
 const SkeletonRow = () => (
   <tr className="animate-pulse">
-    {Array.from({ length: 7 }).map((_, idx) => (
+    {Array.from({ length: 8 }).map((_, idx) => (
       <td key={idx} className="px-3 py-3">
         <div className="h-4 w-28 rounded bg-slate-200" />
       </td>
@@ -266,6 +302,7 @@ const ProviderPrivateOffersPage = () => {
                   <th className="px-3 py-3 text-left">Price</th>
                   <th className="px-3 py-3 text-left">Dates</th>
                   <th className="px-3 py-3 text-left">Status</th>
+                  <th className="px-3 py-3 text-left">Seller Confirmation</th>
                   <th className="px-3 py-3 text-left">Created</th>
                   <th className="px-3 py-3 text-left">Action</th>
                 </tr>
@@ -319,6 +356,7 @@ const ProviderPrivateOffersPage = () => {
                   <th className="px-3 py-3 text-left">Price</th>
                   <th className="px-3 py-3 text-left">Dates</th>
                   <th className="px-3 py-3 text-left">Status</th>
+                  <th className="px-3 py-3 text-left">Seller Confirmation</th>
                   <th className="px-3 py-3 text-left">Created</th>
                   <th className="px-3 py-3 text-left">Action</th>
                 </tr>
@@ -373,6 +411,9 @@ const ProviderPrivateOffersPage = () => {
                       <td className="px-3 py-3 text-slate-700">{dates || "Not provided"}</td>
                       <td className="px-3 py-3">
                         <StatusBadge value={item.status} />
+                      </td>
+                      <td className="px-3 py-3">
+                        <SellerConfirmationBadge status={item.sellerConfirmationStatus} />
                       </td>
                       <td className="px-3 py-3 text-slate-600">{created}</td>
                       <td className="px-3 py-3">

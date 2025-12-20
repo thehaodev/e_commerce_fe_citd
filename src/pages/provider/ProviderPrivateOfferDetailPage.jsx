@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   FiAlertCircle,
   FiArrowLeft,
+  FiCheckCircle,
   FiClock,
   FiFileText,
   FiLayers,
   FiRefreshCw,
-  FiTag,
+  FiX,
 } from "react-icons/fi";
 import { privateOfferApi } from "../../api/privateOffersApi";
 import { getOfferById } from "../../api/offerApi";
@@ -28,6 +29,13 @@ const normalizePrivateOffer = (item) => ({
   sellerDocumentation: item?.seller_documentation || "",
   internalNotes: item?.internal_notes ?? "",
   status: item?.status || "",
+  sellerConfirmationStatus:
+    item?.seller_confirmation_status || item?.sellerConfirmationStatus || "PENDING",
+  sellerConfirmedAt: item?.seller_confirmed_at || item?.sellerConfirmedAt || null,
+  sellerConfirmedBy: item?.seller_confirmed_by || item?.sellerConfirmedBy || null,
+  sellerConfirmationChannel:
+    item?.seller_confirmation_channel || item?.sellerConfirmationChannel || null,
+  sellerConfirmationNote: item?.seller_confirmation_note || item?.sellerConfirmationNote || null,
   createdAt: item?.created_at || "",
   updatedAt: item?.updated_at || "",
 });
@@ -45,6 +53,42 @@ const StatusBadge = ({ value }) => (
   </span>
 );
 
+const SellerConfirmationBadge = ({ status }) => {
+  const tone =
+    status === "CONFIRMED"
+      ? "emerald"
+      : status === "REJECTED"
+        ? "rose"
+        : "amber";
+  const label =
+    status === "CONFIRMED"
+      ? "Seller confirmed (offline)"
+      : status === "REJECTED"
+        ? "Seller rejected (offline)"
+        : "Seller confirmation: Pending";
+  const bgClass =
+    tone === "emerald"
+      ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+      : tone === "rose"
+        ? "bg-rose-50 text-rose-700 border-rose-100"
+        : "bg-amber-50 text-amber-800 border-amber-100";
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${bgClass}`}
+    >
+      {label}
+    </span>
+  );
+};
+
+const formatDateTime = (value) => {
+  if (!value) return "Not provided";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString();
+};
+
 const ProviderPrivateOfferDetailPage = () => {
   const { privateOfferId } = useParams();
   const navigate = useNavigate();
@@ -54,6 +98,28 @@ const ProviderPrivateOfferDetailPage = () => {
   const [serviceRequest, setServiceRequest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [toasts, setToasts] = useState([]);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmSubmitting, setConfirmSubmitting] = useState(false);
+  const [confirmError, setConfirmError] = useState("");
+  const [confirmForm, setConfirmForm] = useState({
+    confirmed_by: "",
+    channel: "EMAIL",
+    note: "",
+  });
+  const [confirmFormErrors, setConfirmFormErrors] = useState({});
+
+  const showToast = useCallback((message, tone = "success") => {
+    const id = `${Date.now()}-${Math.random()}`;
+    setToasts((prev) => [...prev, { id, message, tone }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, 3500);
+  }, []);
+
+  const dismissToast = useCallback((id) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  }, []);
 
   const fetchDetail = async () => {
     if (!privateOfferId) {
@@ -109,6 +175,72 @@ const ProviderPrivateOfferDetailPage = () => {
     }
   };
 
+  const validateConfirmForm = useCallback(() => {
+    const errors = {};
+    if (!confirmForm.confirmed_by.trim()) {
+      errors.confirmed_by = "Confirmed by is required.";
+    }
+    if (!confirmForm.channel) {
+      errors.channel = "Channel is required.";
+    }
+    const note = confirmForm.note.trim();
+    if (!note) {
+      errors.note = "Note is required.";
+    } else if (note.length < 10) {
+      errors.note = "Note must be at least 10 characters.";
+    } else if (note.length > 1000) {
+      errors.note = "Note must be 1000 characters or less.";
+    }
+    setConfirmFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [confirmForm]);
+
+  const handleConfirmFieldChange = (field) => (e) => {
+    const value = e.target.value;
+    setConfirmForm((prev) => ({ ...prev, [field]: value }));
+    setConfirmFormErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const handleSubmitSellerConfirm = async (e) => {
+    e.preventDefault();
+    setConfirmError("");
+    const isValid = validateConfirmForm();
+    if (!isValid || !privateOfferId) return;
+
+    setConfirmSubmitting(true);
+    try {
+      await privateOfferApi.confirmSeller(privateOfferId, {
+        confirmed_by: confirmForm.confirmed_by.trim(),
+        channel: confirmForm.channel,
+        note: confirmForm.note.trim(),
+      });
+      showToast("Seller marked as confirmed.");
+      setShowConfirmModal(false);
+      setConfirmForm({ confirmed_by: "", channel: "EMAIL", note: "" });
+      await fetchDetail();
+    } catch (err) {
+      const msg =
+        err?.response?.data?.detail ||
+        err?.message ||
+        "Could not mark seller as confirmed right now.";
+      setConfirmError(msg);
+    } finally {
+      setConfirmSubmitting(false);
+    }
+  };
+
+  const closeConfirmModal = () => {
+    if (confirmSubmitting) return;
+    setShowConfirmModal(false);
+    setConfirmError("");
+    setConfirmFormErrors({});
+  };
+
   useEffect(() => {
     fetchDetail();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,8 +251,15 @@ const ProviderPrivateOfferDetailPage = () => {
     return offer.product_name || `Offer ${offer.id || ""}` || "Offer";
   }, [offer]);
 
+  const sellerConfirmationStatus = privateOffer?.sellerConfirmationStatus || "PENDING";
+  const isSellerConfirmed = sellerConfirmationStatus === "CONFIRMED";
+  const isSellerRejected = sellerConfirmationStatus === "REJECTED";
+  const sendProposalDisabled = !privateOffer?.id || !isSellerConfirmed;
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
+
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
@@ -254,6 +393,59 @@ const ProviderPrivateOfferDetailPage = () => {
             </div>
 
             <div className="space-y-4">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-slate-900">
+                    <FiCheckCircle className="h-5 w-5 text-emerald-500" />
+                    <h3 className="text-lg font-bold">Seller confirmation (offline)</h3>
+                  </div>
+                  <SellerConfirmationBadge status={sellerConfirmationStatus} />
+                </div>
+
+                {isSellerConfirmed || isSellerRejected ? (
+                  <div className="space-y-2">
+                    <InfoRow
+                      label={isSellerRejected ? "Updated by" : "Confirmed by"}
+                      value={privateOffer?.sellerConfirmedBy}
+                    />
+                    <InfoRow
+                      label="Channel"
+                      value={privateOffer?.sellerConfirmationChannel}
+                    />
+                    <InfoRow
+                      label={isSellerRejected ? "Updated at" : "Confirmed at"}
+                      value={formatDateTime(privateOffer?.sellerConfirmedAt)}
+                    />
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                        Note
+                      </p>
+                      <p className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3 text-sm text-slate-800">
+                        {privateOffer?.sellerConfirmationNote || "No note provided."}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                    Seller confirmation is required before sending a proposal.
+                  </div>
+                )}
+
+                {sellerConfirmationStatus === "PENDING" ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConfirmError("");
+                      setConfirmFormErrors({});
+                      setShowConfirmModal(true);
+                    }}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+                  >
+                    Mark Seller Confirmed (offline)
+                  </button>
+                ) : null}
+              </div>
+
               <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-5 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 text-slate-900">
                   <FiFileText className="h-5 w-5 text-emerald-500" />
@@ -282,21 +474,26 @@ const ProviderPrivateOfferDetailPage = () => {
                 </div>
                 <button
                   type="button"
-                  disabled={!privateOffer?.id}
+                  disabled={sendProposalDisabled}
                   onClick={() =>
-                    privateOffer?.id &&
+                    !sendProposalDisabled &&
                     navigate(`/provider/proposals/new?privateOfferId=${privateOffer.id}`, {
                       state: { privateOffer, serviceRequest, offer },
                     })
                   }
                   className={`w-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition ${
-                    privateOffer?.id
+                    !sendProposalDisabled
                       ? "bg-emerald-600 text-white hover:bg-emerald-700"
                       : "bg-slate-200 text-slate-500 cursor-not-allowed"
                   }`}
                 >
                   Send Proposal
                 </button>
+                {sendProposalDisabled ? (
+                  <p className="text-xs text-amber-700">
+                    Seller confirmation (offline) is required before sending a proposal.
+                  </p>
+                ) : null}
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
@@ -324,6 +521,148 @@ const ProviderPrivateOfferDetailPage = () => {
           </div>
         </>
       )}
+
+      {showConfirmModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Mark Seller Confirmed (offline)</h3>
+                <p className="text-sm text-slate-600">
+                  Record the offline confirmation details for this seller.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeConfirmModal}
+                className="text-slate-500 hover:text-slate-700"
+              >
+                <FiX className="h-5 w-5" />
+              </button>
+            </div>
+
+            {confirmError ? (
+              <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                <FiAlertCircle className="h-4 w-4 mt-0.5" />
+                <div className="space-y-0.5">
+                  <p className="font-semibold">Could not save confirmation.</p>
+                  <p className="text-xs text-rose-600">{confirmError}</p>
+                </div>
+              </div>
+            ) : null}
+
+            <form onSubmit={handleSubmitSellerConfirm} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-sm font-semibold text-slate-800">
+                  Confirmed by <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={confirmForm.confirmed_by}
+                  onChange={handleConfirmFieldChange("confirmed_by")}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 focus:border-emerald-200 focus:ring-2 focus:ring-emerald-100"
+                  placeholder="Person who confirmed"
+                />
+                {confirmFormErrors.confirmed_by ? (
+                  <p className="text-xs text-rose-600">{confirmFormErrors.confirmed_by}</p>
+                ) : null}
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-semibold text-slate-800">
+                  Channel <span className="text-rose-600">*</span>
+                </label>
+                <select
+                  value={confirmForm.channel}
+                  onChange={handleConfirmFieldChange("channel")}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 focus:border-emerald-200 focus:ring-2 focus:ring-emerald-100"
+                >
+                  {["EMAIL", "PHONE", "ZALO", "MEETING", "OTHER"].map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+                {confirmFormErrors.channel ? (
+                  <p className="text-xs text-rose-600">{confirmFormErrors.channel}</p>
+                ) : null}
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-semibold text-slate-800">
+                  Note <span className="text-rose-600">*</span>
+                </label>
+                <textarea
+                  value={confirmForm.note}
+                  onChange={handleConfirmFieldChange("note")}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 focus:border-emerald-200 focus:ring-2 focus:ring-emerald-100"
+                  rows={4}
+                  minLength={10}
+                  maxLength={1000}
+                  placeholder="Details of the offline confirmation (min 10 characters)"
+                />
+                {confirmFormErrors.note ? (
+                  <p className="text-xs text-rose-600">{confirmFormErrors.note}</p>
+                ) : null}
+              </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                <button
+                  type="button"
+                  onClick={closeConfirmModal}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700"
+                  disabled={confirmSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={confirmSubmitting}
+                  className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition ${
+                    confirmSubmitting
+                      ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                      : "bg-emerald-600 text-white hover:bg-emerald-700"
+                  }`}
+                >
+                  {confirmSubmitting ? "Saving..." : "Confirm seller"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+const ToastStack = ({ toasts, onDismiss }) => {
+  if (!toasts?.length) return null;
+
+  return (
+    <div className="fixed top-4 right-4 z-50 space-y-2">
+      {toasts.map((toast) => {
+        const tone = toast.tone === "error" ? "rose" : "emerald";
+        const border = tone === "rose" ? "border-rose-200" : "border-emerald-200";
+        const bg = tone === "rose" ? "bg-rose-50" : "bg-emerald-50";
+        const text = tone === "rose" ? "text-rose-800" : "text-emerald-800";
+
+        return (
+          <div
+            key={toast.id}
+            className={`flex items-center gap-3 rounded-xl border ${border} ${bg} px-4 py-3 text-sm font-semibold ${text} shadow-lg`}
+          >
+            <FiCheckCircle className="h-4 w-4" />
+            <span className="flex-1">{toast.message}</span>
+            <button
+              type="button"
+              onClick={() => onDismiss?.(toast.id)}
+              className={`${text} hover:opacity-80`}
+            >
+              <FiX className="h-4 w-4" />
+            </button>
+          </div>
+        );
+      })}
     </div>
   );
 };

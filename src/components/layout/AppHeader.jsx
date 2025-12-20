@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
-import { navLinks as buyerNavLinks, notifications } from "../../data/buyerHomeMock";
+import { navLinks as buyerNavLinks } from "../../data/buyerHomeMock";
+import NotificationsDropdown from "../notifications/NotificationsDropdown";
 
 const getDisplayName = (user) => {
   if (!user) return "";
@@ -18,6 +19,33 @@ const getDisplayName = (user) => {
 const getInitial = (user) => {
   const name = getDisplayName(user);
   return name ? name.charAt(0).toUpperCase() : "U";
+};
+
+const Avatar = ({ user, className }) => {
+  const initial = getInitial(user);
+  const url = user?.avatar_url || user?.avatarUrl;
+
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt={getDisplayName(user) || "User avatar"}
+        className={`h-9 w-9 rounded-full object-cover ${className || ""}`}
+        onError={(e) => {
+          e.currentTarget.onerror = null;
+          e.currentTarget.style.display = "none";
+        }}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold ${className || ""} bg-gray-100 text-gray-700`}
+    >
+      {initial}
+    </div>
+  );
 };
 
 const sellerNavLinks = [
@@ -123,7 +151,6 @@ const headerVariants = {
 const AppHeader = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [showNotif, setShowNotif] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
 
   const userLabel = useMemo(() => getDisplayName(user), [user]);
@@ -133,7 +160,13 @@ const AppHeader = () => {
 
   if (!user) return null;
 
+  const handleProfile = () => {
+    setShowProfile(false);
+    navigate("/profile");
+  };
+
   const handleLogout = () => {
+    setShowProfile(false);
     logout?.();
     navigate("/", { replace: true });
   };
@@ -191,72 +224,14 @@ const AppHeader = () => {
         </nav>
 
         <div className="flex items-center gap-4">
-          <div className="relative">
-            <button
-              onClick={() => setShowNotif((prev) => !prev)}
-              className={`relative flex h-11 w-11 items-center justify-center rounded-xl border bg-white shadow-sm transition ${variant.iconButtonAccent}`}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                />
-              </svg>
-              <span
-                className={`absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold ${variant.badgeClass}`}
-              >
-                3
-              </span>
-            </button>
-            {showNotif && (
-              <div
-                className={`absolute right-0 mt-3 w-80 rounded-2xl border bg-white shadow-xl ${variant.panelBorder}`}
-              >
-                <div className="flex items-center justify-between px-4 py-3">
-                  <p className="text-sm font-semibold text-gray-900">Notifications</p>
-                  <button className={`text-xs hover:underline ${variant.actionText}`}>
-                    View all
-                  </button>
-                </div>
-                <div className={`divide-y ${variant.panelDivider}`}>
-                  {notifications.map((item) => (
-                    <div
-                      key={item.id}
-                      className={`flex gap-3 px-4 py-3 ${variant.notificationHover}`}
-                    >
-                      <div className={`mt-0.5 h-2.5 w-2.5 rounded-full ${variant.notificationDot}`} />
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-900">{item.title}</p>
-                        <p className="text-xs text-gray-600">{item.description}</p>
-                        <p className="mt-1 text-[11px] uppercase tracking-wide text-gray-400">
-                          {item.time}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <NotificationsDropdown variant={variant} />
 
           <div className="relative z-30 pointer-events-auto">
             <button
               onClick={() => setShowProfile((prev) => !prev)}
               className={`flex items-center gap-2 rounded-full border bg-white px-2.5 py-1.5 shadow-sm transition ${variant.iconButtonAccent}`}
             >
-              <div
-                className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold ${variant.profileAvatar}`}
-              >
-                {getInitial(user)}
-              </div>
+              <Avatar user={user} className={variant.profileAvatar} />
               <div className="hidden text-left sm:block">
                 <p className="text-sm font-semibold text-gray-900">{userLabel}</p>
                 <p className="text-xs text-gray-500">{userRole}</p>
@@ -280,6 +255,13 @@ const AppHeader = () => {
                   <p className="text-xs text-gray-500">{userRole}</p>
                 </div>
                 <div className={`divide-y text-sm ${variant.panelDivider}`}>
+                  <button
+                    type="button"
+                    onClick={handleProfile}
+                    className={`block w-full text-left px-4 py-2.5 ${variant.dropdownAction}`}
+                  >
+                    Profile
+                  </button>
                   <button
                     type="button"
                     onClick={handleLogout}

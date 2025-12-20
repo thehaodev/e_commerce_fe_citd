@@ -54,6 +54,28 @@ export const privateOfferApi = {
     );
     return unwrap(res);
   },
+
+  /**
+   * Marks seller confirmation for a private offer (offline).
+   * @param {string | number} privateOfferId
+   * @param {{ confirmed_by: string; channel: string; note: string }} payload
+   * @returns {Promise<PrivateOfferResponse>}
+   */
+  async confirmSeller(privateOfferId, payload) {
+    const res = await httpClient.post(`/private-offer/${privateOfferId}/seller-confirm`, payload);
+    return unwrap(res);
+  },
+
+  /**
+   * Marks seller rejection for a private offer (offline), if supported by backend.
+   * @param {string | number} privateOfferId
+   * @param {{ confirmed_by: string; channel: string; note: string }} payload
+   * @returns {Promise<PrivateOfferResponse>}
+   */
+  async rejectSeller(privateOfferId, payload) {
+    const res = await httpClient.post(`/private-offer/${privateOfferId}/seller-reject`, payload);
+    return unwrap(res);
+  },
 };
 
 // Backwards-compatible named exports
@@ -62,5 +84,7 @@ export const getPrivateOfferById = (...args) => privateOfferApi.getPrivateOfferB
 export const getPrivateOffersByOffer = (...args) =>
   privateOfferApi.getPrivateOffersByOffer(...args);
 export const createPrivateOffer = (...args) => privateOfferApi.createPrivateOffer(...args);
+export const confirmSeller = (...args) => privateOfferApi.confirmSeller(...args);
+export const rejectSeller = (...args) => privateOfferApi.rejectSeller(...args);
 
 export default privateOfferApi;
