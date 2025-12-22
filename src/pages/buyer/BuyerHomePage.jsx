@@ -7,6 +7,7 @@ import NewOffers from "../../components/buyer/home/NewOffers";
 import Footer from "../../components/buyer/home/Footer";
 import { getOffers, getOfferById } from "../../api/offerApi";
 import { createBuyerInterest, getMyBuyerInterests } from "../../api/buyerInterestApi";
+import { mockHotOffers, mockNewOffers, mockTopCategories } from "../../data/buyerHomeMock";
 
 const BuyerHomePage = () => {
   const [offers, setOffers] = useState([]);
@@ -69,7 +70,7 @@ const BuyerHomePage = () => {
         const sortedInterests = [...interests].sort(
           (a, b) => new Date(b?.created_at || b?.createdAt) - new Date(a?.created_at || a?.createdAt)
         );
-        const latestInterests = sortedInterests.slice(0, 3);
+        const latestInterests = sortedInterests.slice(0, 4);
 
         const offerPromises = latestInterests
           .map((interest) => interest?.offer_id || interest?.offerId)
@@ -129,34 +130,47 @@ const BuyerHomePage = () => {
     );
   }, [offers]);
 
-  const newOffers = useMemo(() => sortedByCreated.slice(0, 8), [sortedByCreated]);
-  const hotOffers = useMemo(() => sortedByCreated.slice(0, 8), [sortedByCreated]);
+  const hasApiOffers = sortedByCreated.length > 0;
+  const newOffers = useMemo(
+    () => (hasApiOffers ? sortedByCreated.slice(0, 6) : mockNewOffers),
+    [hasApiOffers, sortedByCreated]
+  );
+  const hotOffers = useMemo(
+    () => (hasApiOffers ? sortedByCreated.slice(0, 3) : mockHotOffers),
+    [hasApiOffers, sortedByCreated]
+  );
+  const hotLoading = hasApiOffers ? offersLoading : false;
+  const newLoading = hasApiOffers ? offersLoading : false;
+  const sectionError = hasApiOffers ? offersError || interestActionError : null;
+  const interestProps = hasApiOffers
+    ? {
+        interestedOfferIds,
+        submittingOfferId: isSubmittingOfferId,
+        onExpressInterest: handleExpressInterest,
+      }
+    : {};
 
   return (
-    <div className="min-h-screen bg-amber-50/60 text-gray-900">
-      <main className="pb-10">
+    <div className="min-h-screen bg-white text-gray-900">
+      <main className="pb-16">
         <HeroBanner />
         <InterestedOffers
           offers={interestedOffers}
           isLoading={interestedLoading}
           error={interestedError}
         />
-        <TopCategories />
+        <TopCategories categories={mockTopCategories} />
         <OfferHot
           offers={hotOffers}
-          isLoading={offersLoading}
-          error={offersError || interestActionError}
-          interestedOfferIds={interestedOfferIds}
-          submittingOfferId={isSubmittingOfferId}
-          onExpressInterest={handleExpressInterest}
+          isLoading={hotLoading}
+          error={sectionError}
+          {...interestProps}
         />
         <NewOffers
           offers={newOffers}
-          isLoading={offersLoading}
-          error={offersError || interestActionError}
-          interestedOfferIds={interestedOfferIds}
-          submittingOfferId={isSubmittingOfferId}
-          onExpressInterest={handleExpressInterest}
+          isLoading={newLoading}
+          error={sectionError}
+          {...interestProps}
         />
       </main>
       <Footer />
