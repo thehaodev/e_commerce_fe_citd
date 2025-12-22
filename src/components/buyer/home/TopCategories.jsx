@@ -1,30 +1,49 @@
-import { categories } from "../../../data/buyerHomeMock";
+import { mockTopCategories } from "../../../data/buyerHomeMock";
 
-const TopCategories = () => {
+const TopCategories = ({ categories = mockTopCategories }) => {
+  const list = categories && categories.length ? categories : mockTopCategories;
+
   return (
-    <section className="mx-auto max-w-7xl px-4 py-6">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-sm font-semibold text-amber-700">Top Categories</p>
-          <h2 className="text-xl font-bold text-gray-900">Explore by industry</h2>
-        </div>
-        <button className="text-sm font-semibold text-amber-700 hover:text-amber-800">
-          See all
+    <section className="mx-auto max-w-7xl px-4 py-8">
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-sm font-semibold text-amber-700">Top Categories</p>
+        <button
+          type="button"
+          className="text-xs font-semibold text-gray-700 transition hover:text-gray-900"
+        >
+          View All &gt;
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
-        {categories.map((category) => (
+      <div className="mb-4 h-px w-full bg-gray-200" />
+
+      <div className="flex h-auto w-full items-center justify-start gap-6 overflow-x-auto pb-2 md:h-28 md:gap-0 md:overflow-visible md:justify-between">
+        {list.map((category, idx) => (
           <div
             key={category.id}
-            className="flex flex-col items-center gap-2 rounded-2xl border border-amber-50 bg-white px-3 py-4 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+            className="flex flex-none flex-col items-center justify-center text-center sm:w-28 md:h-full md:flex-1 md:w-auto"
           >
             <div
-              className={`flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold ${category.color}`}
+              className={`h-20 w-20 overflow-hidden rounded-full shadow-sm ring-2 ring-offset-2 md:h-[85%] md:w-auto md:aspect-square ${
+                idx === 0 ? "ring-blue-500" : "ring-transparent"
+              }`}
             >
-              {category.name.slice(0, 2)}
+              {category.imageUrl ? (
+                <img
+                  src={category.imageUrl}
+                  alt={category.name}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 text-[11px] font-semibold text-gray-500">
+                  {category.name.slice(0, 2)}
+                </div>
+              )}
             </div>
-            <p className="text-xs font-semibold text-gray-800">{category.name}</p>
+            <p className="mt-2 text-center text-sm font-semibold text-slate-700 line-clamp-2">
+              {category.name}
+            </p>
           </div>
         ))}
       </div>
