@@ -1,6 +1,6 @@
 export const navLinks = [
   { label: "Home", to: "/buyer/home" },
-  { label: "Offer", to: "/buyer/home" },
+  { label: "Offer", to: "/buyer/offers" },
   { label: "Request", to: "/buyer/service-requests" },
   { label: "My Proposals", to: "/buyer/proposals" },
 ];
@@ -106,76 +106,134 @@ export const interestedOffers = [
   },
 ];
 
-export const categories = [
-  { id: 1, name: "Metals", color: "bg-orange-100 text-orange-600" },
-  { id: 2, name: "Chemicals", color: "bg-blue-100 text-blue-600" },
-  { id: 3, name: "Electronics", color: "bg-emerald-100 text-emerald-600" },
-  { id: 4, name: "Packaging", color: "bg-indigo-100 text-indigo-600" },
-  { id: 5, name: "Textile", color: "bg-rose-100 text-rose-600" },
-  { id: 6, name: "Construction", color: "bg-amber-100 text-amber-600" },
-  { id: 7, name: "Auto Parts", color: "bg-cyan-100 text-cyan-600" },
-  { id: 8, name: "Agri", color: "bg-lime-100 text-lime-600" },
+export const mockCategories = [
+  { id: 1, code: "Me", name: "Metals", iconText: "Me" },
+  { id: 2, code: "Ch", name: "Chemicals", iconText: "Ch" },
+  { id: 3, code: "El", name: "Electronics", iconText: "El" },
+  { id: 4, code: "Pa", name: "Packaging", iconText: "Pa" },
+  { id: 5, code: "Te", name: "Textile", iconText: "Te" },
+  { id: 6, code: "Co", name: "Construction", iconText: "Co" },
+  { id: 7, code: "Au", name: "Auto Parts", iconText: "Au" },
+  { id: 8, code: "Ag", name: "Agri", iconText: "Ag" },
 ];
 
-export const hotOffers = [
+export const mockHotOffers = [
   {
-    id: 1,
-    title: "Flash Deal: Aluminum Sheets",
-    description: "Limited stock with bundled logistics support.",
-    badge: "HOT",
-    discount: "18% OFF",
+    id: 101,
+    title: "Industrial Steel Sheets",
+    subtitle: "Bundle logistics included",
+    discountText: "Up to 35% OFF",
+    imageUrl:
+      "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=800&q=80",
   },
   {
-    id: 2,
-    title: "Promo: Industrial Bearings",
-    description: "Certified bearings shipped within 48h.",
-    badge: "TRENDING",
-    discount: "12% OFF",
+    id: 102,
+    title: "Galvanized Coils",
+    subtitle: "Fast delivery worldwide",
+    discountText: "Up to 30% OFF",
+    imageUrl:
+      "https://images.unsplash.com/photo-1503933166348-8e2c7ea800d1?auto=format&fit=crop&w=800&q=80",
   },
   {
-    id: 3,
-    title: "Special: Polypropylene Resin",
-    description: "Secure the best rate before quarter end.",
-    badge: "NEW",
-    discount: "15% OFF",
+    id: 103,
+    title: "Aluminum Extrusion",
+    subtitle: "Custom sizes available",
+    discountText: "Up to 25% OFF",
+    imageUrl:
+      "https://images.unsplash.com/photo-1472145246862-b24cf25c4a36?auto=format&fit=crop&w=800&q=80",
   },
 ];
 
-export const newOffers = [
+export const mockNewOffers = [
   {
-    id: 1,
-    title: "HDPE Granules",
-    supplier: "EcoPlast",
-    price: "$1,200 / ton",
-    moq: "MOQ 5T",
-    image:
-      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    id: 2,
-    title: "Carbon Steel Pipes",
-    supplier: "SteelLink",
-    price: "$540 / ton",
-    moq: "MOQ 15T",
-    image:
+    id: 201,
+    name: "Metal Pipes",
+    price: "$450 / ton",
+    imageUrl:
       "https://images.unsplash.com/photo-1455165814004-1126a7199f9b?auto=format&fit=crop&w=800&q=80",
   },
   {
-    id: 3,
-    title: "Lithium Battery Cells",
-    supplier: "VoltCore",
+    id: 202,
+    name: "Battery Cell",
     price: "$4.6 / cell",
-    moq: "MOQ 5k units",
-    image:
+    imageUrl:
       "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80",
   },
   {
-    id: 4,
-    title: "Industrial Paint",
-    supplier: "ColorMax",
+    id: 203,
+    name: "HDPE Granules",
+    price: "$1,200 / ton",
+    imageUrl:
+      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    id: 204,
+    name: "Industrial Paint",
     price: "$38 / barrel",
-    moq: "MOQ 200 barrels",
-    image:
+    imageUrl:
       "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    id: 205,
+    name: "Galvanized Steel Coils",
+    price: "$420 / ton",
+    imageUrl:
+      "https://images.unsplash.com/photo-1472145246862-b24cf25c4a36?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    id: 206,
+    name: "Industrial Bearings",
+    price: "$18 / unit",
+    imageUrl:
+      "https://images.unsplash.com/photo-1503933166348-8e2c7ea800d1?auto=format&fit=crop&w=800&q=80",
+  },
+];
+
+export const categories = mockCategories;
+export const hotOffers = mockHotOffers;
+export const newOffers = mockNewOffers;
+
+export const mockTopCategories = [
+  {
+    id: "coffee",
+    name: "Coffee beans",
+    imageUrl:
+      "https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=600&q=80",
+  },
+  {
+    id: "cashew",
+    name: "Cashew nuts",
+    imageUrl:
+      "https://images.unsplash.com/photo-1588167108374-00a0b5c194b9?auto=format&fit=crop&w=600&q=80",
+  },
+  {
+    id: "peanut",
+    name: "Peanuts",
+    imageUrl:
+      "https://images.unsplash.com/photo-1505253758473-96b7015fcd40?auto=format&fit=crop&w=600&q=80",
+  },
+  {
+    id: "seafood",
+    name: "Dried seafood",
+    imageUrl:
+      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&q=80",
+  },
+  {
+    id: "fruits",
+    name: "Dried fruits",
+    imageUrl:
+      "https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?auto=format&fit=crop&w=600&q=80",
+  },
+  {
+    id: "fmcf",
+    name: "FMCF",
+    imageUrl:
+      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&q=80",
+  },
+  {
+    id: "health",
+    name: "Health products",
+    imageUrl:
+      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=600&q=80",
   },
 ];

@@ -1,17 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   FiAlertCircle,
   FiArrowLeft,
-  FiCalendar,
   FiCheckCircle,
   FiDollarSign,
   FiGlobe,
-  FiHome,
-  FiInfo,
   FiLoader,
   FiMapPin,
-  FiPackage,
   FiSend,
   FiX,
 } from "react-icons/fi";
@@ -19,19 +15,23 @@ import { getOfferById } from "../../api/offerApi";
 import { checkBuyerInterest, createBuyerInterest } from "../../api/buyerInterestApi";
 import { SELLER_INCOTERMS } from "../../types/apiSchemas";
 
+const EMPTY_PLACEHOLDER = "\u2014";
+
 const formatDate = (value) => {
-  if (!value) return "Not provided";
+  if (!value) return EMPTY_PLACEHOLDER;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString();
+  return date.toLocaleDateString("en-GB");
 };
 
-const Field = ({ label, value }) => (
-  <div className="rounded-xl border border-amber-100 bg-amber-50/50 px-4 py-3">
-    <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">{label}</p>
-    <p className="text-sm font-semibold text-gray-900">{value || "Not provided"}</p>
-  </div>
-);
+const normalizeImageSrc = (value) => {
+  if (!value) return null;
+  if (typeof value === "string") return value;
+  if (typeof value === "object") {
+    return value.url || value.image_url || value.imageUrl || null;
+  }
+  return null;
+};
 
 const StatusBadge = ({ status }) => (
   <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
@@ -108,6 +108,7 @@ const BuyerOfferDetailPage = () => {
   const [interestError, setInterestError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
   const [toasts, setToasts] = useState([]);
+  const [activeImage, setActiveImage] = useState(0);
 
   const showToast = useCallback((message, variant = "success") => {
     const id = `${Date.now()}-${Math.random()}`;
@@ -206,43 +207,101 @@ const BuyerOfferDetailPage = () => {
 
   const actionDisabled = interestLoading || expressInterestLoading || !offer;
 
+  const title =
+    offer?.product_name ||
+    offer?.title ||
+    offer?.name ||
+    offer?.product ||
+    "Offer detail";
+  const description = offer?.description || EMPTY_PLACEHOLDER;
+  const priceValue = useMemo(() => {
+    if (offer?.price === null || offer?.price === undefined) return EMPTY_PLACEHOLDER;
+    const numericPrice = Number(offer.price);
+    if (Number.isNaN(numericPrice)) return offer.price;
+    return `$${numericPrice} / KG`;
+  }, [offer?.price]);
+  const quantityValue = offer?.quantity ? `${offer.quantity} KG` : offer?.quantity || EMPTY_PLACEHOLDER;
+  const crdValue = readyDate || EMPTY_PLACEHOLDER;
+
+  const sellerName =
+    offer?.seller_name ||
+    offer?.seller_company ||
+    offer?.seller?.name ||
+    offer?.seller?.company_name ||
+    "Unknown seller";
+  const sellerAvatar =
+    offer?.seller_avatar ||
+    offer?.seller_avatar_url ||
+    offer?.seller?.avatar_url ||
+    offer?.seller?.avatarUrl ||
+    null;
+
+  const galleryImages = useMemo(() => {
+    const list = [
+      normalizeImageSrc(offer?.image),
+      normalizeImageSrc(offer?.imageUrl || offer?.image_url),
+      ...(Array.isArray(offer?.images) ? offer.images.map((img) => normalizeImageSrc(img)) : []),
+      ...(Array.isArray(offer?.image_urls) ? offer.image_urls.map((img) => normalizeImageSrc(img)) : []),
+    ].filter(Boolean);
+
+    return list.filter((src, idx) => list.indexOf(src) === idx);
+  }, [offer]);
+
+  useEffect(() => {
+    setActiveImage(0);
+  }, [offerId, galleryImages.length]);
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
+    <div className="mx-auto max-w-7xl px-4 py-10 space-y-8">
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
 
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => navigate("/buyer/home")}
-          className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-white px-3 py-2 text-sm font-semibold text-amber-800 shadow-sm hover:border-amber-300"
-        >
-          <FiArrowLeft className="h-4 w-4" />
-          Back to Home
-        </button>
-        <span className="text-xs font-semibold uppercase tracking-wide text-amber-700">
-          Offer Detail
-        </span>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-500">
+          <Link to="/buyer/home" className="text-yellow-600 hover:text-yellow-500">
+            Home
+          </Link>
+          <span className="text-slate-400">/</span>
+          <Link to="/buyer/offers" className="text-yellow-600 hover:text-yellow-500">
+            Offer
+          </Link>
+          <span className="text-slate-400">/</span>
+          <span className="text-slate-700">{title}</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-slate-600">
+          <button
+            type="button"
+            onClick={() => navigate("/buyer/home")}
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 font-semibold text-slate-700 shadow-sm hover:border-slate-300"
+          >
+            <FiArrowLeft className="h-4 w-4" />
+            Back
+          </button>
+          {interestChecked && <InterestBadge interested={isInterested} />}
+        </div>
       </div>
 
-      {!isInterested && interestChecked && (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          <FiInfo className="mt-0.5 h-4 w-4 text-amber-700" />
-          <div className="space-y-1">
-            <p className="font-semibold">To request service for this offer, please click Express Interest first.</p>
-            <p className="text-xs text-amber-700">
-              Once you express interest, the service request form will unlock on this page.
-            </p>
-          </div>
-        </div>
-      )}
-
       {loading ? (
-        <div className="rounded-3xl border border-amber-100 bg-white p-6 shadow-sm">
-          <div className="h-7 w-48 animate-pulse rounded bg-amber-100 mb-4" />
-          <div className="grid gap-3 md:grid-cols-2">
-            {[...Array(6)].map((_, idx) => (
-              <div key={idx} className="h-24 rounded-xl border border-amber-50 bg-amber-50/60 animate-pulse" />
-            ))}
+        <div className="grid gap-6 lg:grid-cols-12">
+          <div className="space-y-4 lg:col-span-7">
+            <div className="h-[360px] w-full animate-pulse rounded-3xl bg-slate-100 sm:h-[420px] lg:h-[560px]" />
+            <div className="flex gap-3">
+              {[1, 2, 3].map((item) => (
+                <div
+                  key={item}
+                  className="h-20 w-24 animate-pulse rounded-xl bg-slate-100"
+                />
+              ))}
+            </div>
+          </div>
+          <div className="space-y-4 lg:col-span-5">
+            <div className="space-y-2">
+              <div className="h-5 w-24 animate-pulse rounded bg-slate-100" />
+              <div className="h-10 w-3/4 animate-pulse rounded bg-slate-100" />
+              <div className="h-4 w-40 animate-pulse rounded bg-slate-100" />
+            </div>
+            <div className="h-28 animate-pulse rounded-2xl bg-slate-100" />
+            <div className="h-24 animate-pulse rounded-2xl bg-slate-100" />
+            <div className="h-14 animate-pulse rounded-xl bg-slate-100" />
           </div>
         </div>
       ) : error ? (
@@ -262,34 +321,117 @@ const BuyerOfferDetailPage = () => {
         </div>
       ) : (
         <>
-          <div className="rounded-3xl border border-amber-100 bg-white p-6 shadow-sm">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
-                  Product
-                </p>
-                <h1 className="text-3xl font-bold text-gray-900">{offer?.product_name}</h1>
-                <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
-                  <StatusBadge status={offer?.status} />
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
-                    <FiPackage className="h-4 w-4" />
-                    Qty: {offer?.quantity}
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
-                    <FiDollarSign className="h-4 w-4" />
-                    Price: {offer?.price}
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
-                    <FiGlobe className="h-4 w-4" />
-                    Seller Incoterm: {sellerIncoterm}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-600">
-                  {offer?.description || "No description provided."}
-                </p>
+          <div className="grid gap-8 lg:grid-cols-12">
+            <div className="space-y-4 lg:col-span-7">
+              <div className="relative h-[320px] w-full overflow-hidden rounded-3xl bg-slate-100 sm:h-[420px] lg:h-[560px]">
+                {galleryImages.length ? (
+                  <img
+                    src={galleryImages[activeImage]}
+                    alt={title}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-slate-500">
+                    No image
+                  </div>
+                )}
               </div>
-              <div className="flex flex-col items-end gap-3">
-                {interestChecked && <InterestBadge interested={isInterested} />}
+
+              <div className="flex flex-wrap items-center gap-3">
+                {(galleryImages.length ? galleryImages : [null]).slice(0, 3).map((src, idx) => (
+                  <button
+                    key={src || idx}
+                    type="button"
+                    onClick={() => src && setActiveImage(idx)}
+                    className={`relative h-20 w-24 overflow-hidden rounded-xl border ${
+                      activeImage === idx ? "border-yellow-400 ring-2 ring-yellow-200" : "border-slate-200"
+                    } bg-white`}
+                  >
+                    {src ? (
+                      <img
+                        src={src}
+                        alt={`${title} thumbnail ${idx + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-slate-400">
+                        Thumbnail
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-6 lg:col-span-5">
+              <div className="space-y-2">
+                <StatusBadge status={offer?.status} />
+                <h1 className="text-4xl font-extrabold text-slate-900 md:text-5xl">{title}</h1>
+                <p className="text-sm font-semibold text-slate-500">Offer ID: {offer?.id || EMPTY_PLACEHOLDER}</p>
+                <p className="text-base leading-relaxed text-slate-700">{description}</p>
+              </div>
+
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                <div className="grid grid-cols-2 divide-x divide-slate-200">
+                  <div className="p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Quantity</p>
+                    <p className="mt-2 text-lg font-semibold text-slate-900">{quantityValue}</p>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Price</p>
+                    <p className="mt-2 flex items-center gap-2 text-lg font-semibold text-slate-900">
+                      <FiDollarSign className="h-5 w-5 text-yellow-500" />
+                      {priceValue}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 divide-x divide-slate-200 border-t border-slate-200">
+                  <div className="p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Incoterm</p>
+                    <p className="mt-2 text-lg font-semibold text-slate-900">{sellerIncoterm || EMPTY_PLACEHOLDER}</p>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">CRD</p>
+                    <p className="mt-2 text-lg font-semibold text-slate-900">{crdValue}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-50 text-base font-semibold text-yellow-700">
+                    {sellerAvatar ? (
+                      <img
+                        src={sellerAvatar}
+                        alt={sellerName}
+                        className="h-full w-full rounded-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      sellerName?.charAt(0)?.toUpperCase() || "S"
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Seller</p>
+                    <p className="text-lg font-semibold text-slate-900">{sellerName}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="rounded-full border border-yellow-300 px-3 py-2 text-sm font-semibold text-yellow-700 transition hover:bg-yellow-50"
+                >
+                  View Profile
+                </button>
+              </div>
+
+              <div className="space-y-3 rounded-2xl bg-white p-4 shadow-sm">
                 {actionMessage && (
                   <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
                     <FiCheckCircle className="h-4 w-4" />
@@ -302,87 +444,98 @@ const BuyerOfferDetailPage = () => {
                     {interestError}
                   </div>
                 )}
-                <div className="flex flex-col items-end gap-2">
-                  <button
-                    type="button"
-                    onClick={handleExpressInterest}
-                    disabled={actionDisabled || isInterested}
-                    className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition ${expressInterestLoading ? "cursor-wait" : ""} ${
-                      isInterested
-                        ? "bg-slate-100 text-slate-500 cursor-not-allowed"
-                        : "bg-amber-500 text-black hover:bg-amber-600"
-                    } ${actionDisabled ? "opacity-70 cursor-not-allowed" : ""}`}
-                  >
-                    {expressInterestLoading ? (
-                      <>
-                        <FiLoader className="h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <FiCheckCircle className="h-4 w-4" />
-                        Express Interest
-                      </>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/buyer/service-requests/new?offerId=${offerId}`)}
-                    disabled={!isInterested || actionDisabled}
-                    className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition ${
-                      !isInterested || actionDisabled
-                        ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                        : "bg-emerald-500 text-white hover:bg-emerald-600"
-                    }`}
-                  >
-                    <FiSend className="h-4 w-4" />
-                    Send Service Request
-                  </button>
-                  {!isInterested && (
-                    <p className="text-xs text-slate-500 text-right">
-                      Express interest to enable the service request form for this offer.
-                    </p>
+
+                <button
+                  type="button"
+                  onClick={handleExpressInterest}
+                  disabled={actionDisabled || isInterested}
+                  className={`flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-base font-semibold shadow-sm transition ${
+                    expressInterestLoading ? "cursor-wait" : ""
+                  } ${
+                    isInterested
+                      ? "bg-slate-100 text-slate-500"
+                      : "bg-yellow-400 text-slate-900 hover:bg-yellow-300"
+                  } ${actionDisabled ? "opacity-80 cursor-not-allowed" : ""}`}
+                >
+                  {expressInterestLoading ? (
+                    <>
+                      <FiLoader className="h-5 w-5 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <FiCheckCircle className="h-5 w-5" />
+                      Interest Offer
+                    </>
                   )}
-                </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => navigate(`/buyer/service-requests/new?offerId=${offerId}`)}
+                  disabled={!isInterested || actionDisabled}
+                  className={`flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-base font-semibold transition ${
+                    !isInterested || actionDisabled
+                      ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                      : "bg-slate-900 text-white hover:bg-slate-800"
+                  }`}
+                >
+                  <FiSend className="h-5 w-5" />
+                  Send Service Request
+                </button>
+                {!isInterested && (
+                  <p className="text-xs text-slate-500">
+                    Express interest to unlock the service request form for this offer.
+                  </p>
+                )}
               </div>
             </div>
           </div>
 
-          {isInterested ? (
-            <>
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            {isInterested ? (
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Cargo Ready Date" value={<span className="flex items-center gap-2"><FiCalendar className="h-4 w-4 text-amber-600" />{readyDate}</span>} />
-                <Field label="Port of Loading" value={<span className="flex items-center gap-2"><FiMapPin className="h-4 w-4 text-amber-600" />{offer?.port_of_loading || "Not provided"}</span>} />
-                <Field label="Payment Terms" value={offer?.payment_terms} />
-                <Field label="Seller ID" value={offer?.seller_id} />
-              </div>
-
-              <div className="rounded-3xl border border-amber-100 bg-white p-6 shadow-sm space-y-4">
-                <div className="flex items-center gap-2 text-amber-800">
-                  <FiHome className="h-5 w-5" />
-                  <h2 className="text-lg font-bold">Offer logistics</h2>
+                <div className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                  <FiMapPin className="h-4 w-4 text-yellow-500" />
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Port of Loading</p>
+                    <p className="text-sm font-semibold text-slate-900">{offer?.port_of_loading || EMPTY_PLACEHOLDER}</p>
+                  </div>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label="Incoterm (Seller)" value={sellerIncoterm} />
-                  <Field label="Status" value={offer?.status} />
-                  <Field label="Created At" value={formatDate(offer?.created_at)} />
-                  <Field label="Updated At" value={formatDate(offer?.updated_at)} />
+                <div className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                  <FiGlobe className="h-4 w-4 text-yellow-500" />
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Payment Terms</p>
+                    <p className="text-sm font-semibold text-slate-900">{offer?.payment_terms || EMPTY_PLACEHOLDER}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                  <FiAlertCircle className="h-4 w-4 text-yellow-500" />
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Created At</p>
+                    <p className="text-sm font-semibold text-slate-900">{formatDate(offer?.created_at)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                  <FiAlertCircle className="h-4 w-4 text-yellow-500" />
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Updated At</p>
+                    <p className="text-sm font-semibold text-slate-900">{formatDate(offer?.updated_at)}</p>
+                  </div>
                 </div>
               </div>
-            </>
-          ) : (
-            <div className="rounded-3xl border border-amber-100 bg-white p-6 shadow-sm">
-              <div className="flex items-start gap-3 text-amber-800">
-                <FiAlertCircle className="mt-0.5 h-5 w-5" />
+            ) : (
+              <div className="flex items-start gap-3 text-slate-800">
+                <FiAlertCircle className="mt-0.5 h-5 w-5 text-yellow-500" />
                 <div className="space-y-1">
                   <h2 className="text-lg font-bold">Details locked</h2>
-                  <p className="text-sm text-gray-700">
+                  <p className="text-sm text-slate-700">
                     Basic offer info is shown above. Express interest to view full logistics, seller details, and send a service request.
                   </p>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </>
       )}
     </div>

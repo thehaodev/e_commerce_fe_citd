@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
 import { navLinks as buyerNavLinks } from "../../data/buyerHomeMock";
 import NotificationsDropdown from "../notifications/NotificationsDropdown";
@@ -63,15 +63,15 @@ const providerNavLinks = [
 
 const headerVariants = {
   BUYER: {
-    brandLabel: "Buyer Hub",
-    brandIcon: "B",
-    brandBadge: "bg-gradient-to-br from-amber-400 to-yellow-300 text-black",
+    brandLabel: "CABIN.",
+    brandIcon: null,
+    brandBadge: "",
     brandText: "text-gray-900",
     navLinks: buyerNavLinks,
-    navHover: "hover:bg-amber-50 hover:text-amber-600",
-    searchPlaceholder: "Search offers, suppliers, categories...",
-    searchField:
-      "border-amber-100 bg-amber-50/50 focus:border-amber-400 focus:ring-amber-100",
+    navHover: "hover:text-gray-900",
+    navActive: "text-gray-900 after:absolute after:-bottom-1 after:left-0 after:h-0.5 after:w-full after:bg-yellow-300",
+    searchPlaceholder: "Search ...",
+    searchField: "bg-[#f7e9b0] focus:ring-2 focus:ring-yellow-300 focus:bg-[#f7e9b0]",
     iconButtonAccent: "border-amber-100 hover:border-amber-200 hover:text-amber-700",
     profileAvatar: "bg-amber-100 text-amber-800",
     dropdownAction: "text-amber-700 hover:bg-amber-50",
@@ -151,12 +151,15 @@ const headerVariants = {
 const AppHeader = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showProfile, setShowProfile] = useState(false);
 
   const userLabel = useMemo(() => getDisplayName(user), [user]);
   const roleKey = (user?.role || "").toUpperCase();
   const userRole = roleKey || "User";
   const variant = headerVariants[roleKey] || headerVariants.DEFAULT;
+  const isBuyer = roleKey === "BUYER";
+  const homeLink = variant.navLinks?.[0]?.to || "/";
 
   if (!user) return null;
 
@@ -171,134 +174,152 @@ const AppHeader = () => {
     navigate("/", { replace: true });
   };
 
+  const navIsActive = (path) => {
+    if (!path) return false;
+    if (path === "/") return location.pathname === "/";
+    return location.pathname.startsWith(path);
+  };
+
   return (
     <header
-      className={`app-header sticky top-0 z-30 bg-white/90 backdrop-blur shadow-sm border-b ${variant.headerBorder}`}
+      className={`app-header sticky top-0 z-30 border-b bg-white/95 backdrop-blur ${
+        isBuyer ? "border-amber-100" : `shadow-sm ${variant.headerBorder}`
+      }`}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div
-            className={`flex h-10 w-10 items-center justify-center rounded-xl font-semibold ${variant.brandBadge}`}
-          >
-            {variant.brandIcon || getInitial(user)}
-          </div>
-          <span className={`text-lg font-semibold ${variant.brandText}`}>{variant.brandLabel}</span>
-        </div>
-
-        <div className="hidden flex-1 items-center gap-4 md:flex">
-          <div className="relative w-full">
-            <input
-              type="text"
-              placeholder={variant.searchPlaceholder}
-              className={`w-full rounded-xl border px-4 py-2.5 pr-10 text-sm text-gray-800 transition focus:bg-white focus:outline-none focus:ring-2 ${variant.searchField}`}
-            />
-            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z"
-                />
-              </svg>
-            </span>
-          </div>
-        </div>
-
-        <nav className="hidden items-center gap-4 text-sm font-medium text-gray-800 lg:flex">
-          {variant.navLinks.map((link) => (
-            <Link
-              key={link.label}
-              to={link.to || link.href}
-              className={`rounded-full px-3 py-2 transition ${variant.navHover}`}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="flex items-center gap-4">
-          <NotificationsDropdown variant={variant} />
-
-          <div className="relative z-30 pointer-events-auto">
-            <button
-              onClick={() => setShowProfile((prev) => !prev)}
-              className={`flex items-center gap-2 rounded-full border bg-white px-2.5 py-1.5 shadow-sm transition ${variant.iconButtonAccent}`}
-            >
-              <Avatar user={user} className={variant.profileAvatar} />
-              <div className="hidden text-left sm:block">
-                <p className="text-sm font-semibold text-gray-900">{userLabel}</p>
-                <p className="text-xs text-gray-500">{userRole}</p>
-              </div>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {showProfile && (
+      <div className="mx-auto max-w-7xl px-4">
+        <div className="flex items-center gap-3 py-3 md:gap-4">
+          <Link to={homeLink} className="flex items-center gap-2">
+            {isBuyer ? (
+              <span className="text-xl font-black tracking-tight text-gray-900">CABIN.</span>
+            ) : (
               <div
-                className={`absolute right-0 mt-3 w-56 rounded-2xl border bg-white shadow-xl ${variant.panelBorder}`}
+                className={`flex h-10 w-10 items-center justify-center rounded-xl font-semibold ${variant.brandBadge}`}
               >
-                <div className="px-4 py-3">
+                {variant.brandIcon || getInitial(user)}
+              </div>
+            )}
+            {!isBuyer && (
+              <span className={`text-lg font-semibold ${variant.brandText}`}>{variant.brandLabel}</span>
+            )}
+          </Link>
+
+          <div className="hidden flex-1 items-center gap-3 md:flex">
+            <div className="relative w-full">
+              <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+                </svg>
+              </span>
+              <input
+                type="text"
+                placeholder={variant.searchPlaceholder}
+                className={`w-full rounded-full border-none px-12 py-3 text-sm text-gray-900 shadow-inner transition focus:outline-none ${variant.searchField}`}
+              />
+            </div>
+            {isBuyer && (
+              <button
+                type="button"
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-900 text-yellow-200 transition hover:translate-y-[-1px] hover:opacity-90"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M3 5h18M7 12h10M10 19h4" />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          <nav className="hidden items-center gap-1 text-sm font-semibold text-gray-700 lg:flex">
+            {(isBuyer ? variant.navLinks?.slice(0, 3) : variant.navLinks).map((link) => (
+              <Link
+                key={link.label}
+                to={link.to || link.href}
+                className={`relative rounded-full px-3 py-2 transition ${
+                  navIsActive(link.to || link.href)
+                    ? `${variant.navActive || ""} ${isBuyer ? "text-gray-900" : ""}`
+                    : `${variant.navHover} text-gray-600`
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="ml-auto flex items-center gap-3">
+            <NotificationsDropdown variant={variant} />
+
+            <div className="relative z-30 pointer-events-auto">
+              <button
+                onClick={() => setShowProfile((prev) => !prev)}
+                className={`flex items-center gap-2 rounded-full border bg-white px-2.5 py-1.5 shadow-sm transition ${variant.iconButtonAccent}`}
+              >
+                <Avatar user={user} className={variant.profileAvatar} />
+                <div className="hidden text-left sm:block">
                   <p className="text-sm font-semibold text-gray-900">{userLabel}</p>
                   <p className="text-xs text-gray-500">{userRole}</p>
                 </div>
-                <div className={`divide-y text-sm ${variant.panelDivider}`}>
-                  <button
-                    type="button"
-                    onClick={handleProfile}
-                    className={`block w-full text-left px-4 py-2.5 ${variant.dropdownAction}`}
-                  >
-                    Profile
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className={`block w-full text-left px-4 py-2.5 ${variant.dropdownAction}`}
-                  >
-                    Logout
-                  </button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showProfile && (
+                <div
+                  className={`absolute right-0 mt-3 w-56 rounded-2xl border bg-white shadow-xl ${variant.panelBorder}`}
+                >
+                  <div className="px-4 py-3">
+                    <p className="text-sm font-semibold text-gray-900">{userLabel}</p>
+                    <p className="text-xs text-gray-500">{userRole}</p>
+                  </div>
+                  <div className={`divide-y text-sm ${variant.panelDivider}`}>
+                    <button
+                      type="button"
+                      onClick={handleProfile}
+                      className={`block w-full text-left px-4 py-2.5 ${variant.dropdownAction}`}
+                    >
+                      Profile
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className={`block w-full text-left px-4 py-2.5 ${variant.dropdownAction}`}
+                    >
+                      Logout
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="block px-4 pb-3 md:hidden">
-        <div className="relative">
-          <input
-            type="text"
-            placeholder={variant.searchPlaceholder}
-            className={`w-full rounded-xl border px-4 py-2.5 pr-10 text-sm text-gray-800 transition focus:bg-white focus:outline-none focus:ring-2 ${variant.searchField}`}
-          />
-          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z"
-              />
-            </svg>
-          </span>
+        <div className="block pb-4 md:hidden">
+          <div className="relative">
+            <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-gray-700">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+              </svg>
+            </span>
+            <input
+              type="text"
+              placeholder={variant.searchPlaceholder}
+              className={`w-full rounded-full border-none px-12 py-3 text-sm text-gray-900 shadow-inner transition focus:outline-none ${variant.searchField}`}
+            />
+            {isBuyer && (
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-gray-900 text-yellow-200"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M3 5h18M7 12h10M10 19h4" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </header>
