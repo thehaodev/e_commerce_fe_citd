@@ -1,6 +1,16 @@
 import httpClient from "./httpClient";
 
-const extractUrl = (data) => data?.url || data?.secure_url || data?.data?.url;
+const extractUrl = (data) => {
+  if (typeof data === "string") return data;
+  return (
+    data?.url ||
+    data?.secure_url ||
+    data?.path ||
+    data?.data?.url ||
+    data?.data?.secure_url ||
+    data?.data?.path
+  );
+};
 
 const buildFriendlyError = (error) => {
   const message =
@@ -31,7 +41,11 @@ export const uploadImage = async (file) => {
       console.warn("uploadImage: Unable to extract image URL from response", data);
     }
 
-    return url || data;
+    if (data && typeof data === "object") {
+      return { ...data, url };
+    }
+
+    return { url };
   } catch (error) {
     throw buildFriendlyError(error);
   }
