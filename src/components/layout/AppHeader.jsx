@@ -229,7 +229,7 @@ const AppHeader = () => {
           </div>
 
           <nav className="hidden items-center gap-1 text-sm font-semibold text-gray-700 lg:flex">
-            {(isBuyer ? variant.navLinks?.slice(0, 3) : variant.navLinks).map((link) => (
+            {(variant.navLinks || []).map((link) => (
               <Link
                 key={link.label}
                 to={link.to || link.href}

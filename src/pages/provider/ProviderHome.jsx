@@ -108,16 +108,42 @@ export default function ProviderHome() {
     setErrorPrivateOffers(null);
     setErrorProposals(null);
     try {
-      const [poRes, proposalRes] = await Promise.all([
+      const [poResult, proposalResult] = await Promise.allSettled([
         privateOfferApi.getMyPrivateOffers(),
         getMyProposals(),
       ]);
-      const rawPrivateOffers = poRes?.data ?? poRes ?? [];
-      const rawProposals = proposalRes?.data ?? proposalRes ?? [];
-      const privateOfferList = Array.isArray(rawPrivateOffers?.data) ? rawPrivateOffers.data : rawPrivateOffers;
-      const proposalList = Array.isArray(rawProposals?.data) ? rawProposals.data : rawProposals;
+
+      const deriveErrorMessage = (err) => {
+        if (!err) return null;
+        const status = err?.response?.status;
+        if (status === 404) return null; // Treat empty lists as a valid "no data" state
+        return (
+          err?.response?.data?.detail ||
+          err?.response?.data?.message ||
+          (typeof err?.response?.data === "string" ? err.response.data : "") ||
+          err?.message ||
+          "Unable to load provider data right now."
+        );
+      };
+
+      const unwrapList = (res) => {
+        const raw = res?.data ?? res ?? [];
+        return Array.isArray(raw?.data) ? raw.data : raw;
+      };
+
+      const poError = poResult.status === "rejected" ? poResult.reason : null;
+      const proposalsError = proposalResult.status === "rejected" ? proposalResult.reason : null;
+
+      const privateOfferList =
+        poResult.status === "fulfilled" ? unwrapList(poResult.value) : [];
+      const proposalList =
+        proposalResult.status === "fulfilled" ? unwrapList(proposalResult.value) : [];
+
       const normalizedPrivateOffers = privateOfferList.map(normalizePrivateOffer);
       const normalizedProposals = proposalList.map(normalizeProposal);
+
+      setErrorPrivateOffers(deriveErrorMessage(poError));
+      setErrorProposals(deriveErrorMessage(proposalsError));
       setPrivateOffers(privateOfferList);
       setProposals(proposalList);
       await hydrateServiceRequestMap(normalizedPrivateOffers, normalizedProposals);
