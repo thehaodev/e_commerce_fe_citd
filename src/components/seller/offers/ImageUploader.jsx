@@ -3,6 +3,18 @@ import { FiUpload, FiX, FiArrowLeft, FiArrowRight, FiLoader } from "react-icons/
 import { uploadImage } from "../../../api/uploadApi";
 
 const MAX_IMAGES = 5;
+const getUploadUrl = (res) => {
+  if (!res) return "";
+  if (typeof res === "string") return res;
+  return (
+    res?.url ||
+    res?.secure_url ||
+    res?.path ||
+    res?.data?.url ||
+    res?.data?.secure_url ||
+    res?.data?.path
+  );
+};
 
 const ImageUploader = ({ value = [], onChange, error }) => {
   const [dragActive, setDragActive] = useState(false);
@@ -29,7 +41,7 @@ const ImageUploader = ({ value = [], onChange, error }) => {
       updateItem(item.id, { uploading: true, error: "" });
       try {
         const res = await uploadImage(item.file);
-        const url = res?.data?.url || res?.data?.secure_url || res?.data?.path;
+        const url = getUploadUrl(res);
         if (!url) throw new Error("Upload failed");
         updateItem(item.id, { url, uploading: false });
       } catch (err) {
